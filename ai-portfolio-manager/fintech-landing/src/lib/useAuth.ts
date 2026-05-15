@@ -1,19 +1,26 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useStore } from "./store";
+
+// Routes that are publicly accessible — no login redirect
+const PUBLIC_ROUTES = ["/", "/auth/login", "/auth/register"];
 
 /**
  * Returns the accessToken only after the Zustand persist store has
  * fully hydrated from localStorage. Until hydration is done, returns
  * `null` so protected pages don't prematurely redirect to /auth/login.
+ * Public routes (landing page, auth pages) are never redirected.
  */
 export function useAuth() {
   const router = useRouter();
+  const pathname = usePathname();
   const accessToken = useStore((s) => s.accessToken);
   const [hydrated, setHydrated] = useState(false);
 
+  const isPublic =
+    PUBLIC_ROUTES.includes(pathname) || pathname.startsWith("/auth/");
+
   useEffect(() => {
-    // If already hydrated (e.g. client-side navigation after first load)
     if (useStore.persist.hasHydrated()) {
       setHydrated(true);
       return;
@@ -24,11 +31,10 @@ export function useAuth() {
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!accessToken) {
+    if (!accessToken && !isPublic) {
       router.push("/auth/login");
     }
-  }, [hydrated, accessToken, router]);
+  }, [hydrated, accessToken, isPublic, router]);
 
-  // Return null until hydrated so callers can show a loading state
   return hydrated ? accessToken : null;
 }

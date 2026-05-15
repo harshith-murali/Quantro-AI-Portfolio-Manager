@@ -1,15 +1,15 @@
 import type { Metadata } from 'next';
-import { JetBrains_Mono } from 'next/font/google';
+import { Outfit, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { ClientShell } from '@/components/ClientShell';
 
-const display = JetBrains_Mono({
+const display = Outfit({
   subsets: ['latin'],
   variable: '--font-display',
   weight: ['400', '500', '600', '700']
 });
 
-const body = JetBrains_Mono({
+const body = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   weight: ['400', '500', '600', '700']
