@@ -1,4 +1,10 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+// In the browser, use a relative /api path so requests go through the
+// Next.js rewrite proxy → Express backend (no CORS, no port-3001 exposure).
+// In server-side context (SSR / Route Handlers), hit the backend directly.
+const BASE_URL =
+  typeof window !== "undefined"
+    ? "/api"
+    : (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api");
 
 async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const headers: HeadersInit = {
@@ -6,7 +12,14 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: "include" });
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: "include" });
+  } catch {
+    throw new Error("Cannot reach the server. Please make sure the backend is running.");
+  }
+
   const json = await res.json().catch(() => ({ message: res.statusText }));
   if (!res.ok) {
     // Zod validation errors come back as { message: "Validation failed", errors: { field: ["msg"] } }
