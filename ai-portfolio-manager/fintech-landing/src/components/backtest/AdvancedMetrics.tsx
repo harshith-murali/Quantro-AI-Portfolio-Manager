@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 interface Trade {
   entryDate: string;
@@ -58,7 +59,7 @@ export function AdvancedMetrics({ trades, equityCurve }: { trades: Trade[]; equi
         className="flex items-center justify-between w-full"
       >
         <p className="text-white/40 text-[10px] uppercase tracking-wider">Advanced Metrics</p>
-        <span className="text-white/30 text-xs">{open ? "▲ collapse" : "▼ expand"}</span>
+        <ChevronDown size={14} className={`text-white/30 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (

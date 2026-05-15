@@ -8,6 +8,18 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   ReferenceLine, BarChart, Bar, Cell, LineChart, Line,
 } from "recharts";
+import { 
+  AlertTriangle, 
+  ArrowRight, 
+  BarChart3, 
+  History, 
+  TrendingUp, 
+  TrendingDown,
+  Info,
+  Play,
+  Settings2,
+  Lock
+} from "lucide-react";
 import { backtestSchema, type BacktestInput } from "@/lib/validations";
 import { api } from "@/lib/api";
 import { useStore } from "@/lib/store";
@@ -269,9 +281,12 @@ export default function BacktestPage() {
           </div>
         </div>
 
-        <p className="text-white/20 text-[10px] mb-5 border border-white/5 rounded-lg px-3 py-2">
-          ⚠ Results may differ materially once transaction costs and slippage are applied. Backend support for these parameters is pending.
-        </p>
+        <div className="flex gap-2 mb-5 border border-white/5 rounded-lg px-3 py-2">
+          <AlertTriangle size={14} className="text-white/20 shrink-0 mt-0.5" />
+          <p className="text-white/20 text-[10px]">
+            Results may differ materially once transaction costs and slippage are applied. Backend support for these parameters is pending.
+          </p>
+        </div>
 
         {serverError && (
           <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
@@ -294,8 +309,12 @@ export default function BacktestPage() {
           </div>
         )}
 
-        <button type="submit" disabled={isSubmitting || running} className="gold-btn w-full">
-          {running ? "Running simulation…" : "Run Backtest →"}
+        <button type="submit" disabled={isSubmitting || running} className="gold-btn w-full flex items-center justify-center gap-2">
+          {running ? "Running simulation…" : (
+            <>
+              Run Backtest <ArrowRight size={16} />
+            </>
+          )}
         </button>
       </form>
 
@@ -311,8 +330,8 @@ export default function BacktestPage() {
                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                   Performance Report
                   {report.totalTrades <= 2 && report.totalTrades > 0 && (
-                    <span className="text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded-full font-normal">
-                      ⚠ Low Sample
+                    <span className="flex items-center gap-1.5 text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded-full font-normal">
+                      <AlertTriangle size={10} /> Low Sample
                     </span>
                   )}
                 </h2>

@@ -1,5 +1,16 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import { 
+  Plus, 
+  Minus, 
+  History, 
+  Wallet as WalletIcon, 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  CreditCard,
+  CheckCircle2,
+  AlertTriangle
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/useAuth";
@@ -477,7 +488,9 @@ export default function WalletPage() {
                     exit={{ opacity: 0, height: 0 }}
                     className="text-emerald-400 text-sm mb-4 text-center font-medium"
                   >
-                    ✓ {actionMsg}
+                    <div className="flex items-center justify-center gap-2 text-emerald-400">
+                      <CheckCircle2 size={16} /> {actionMsg}
+                    </div>
                   </motion.p>
                 )}
                 {actionErr && (

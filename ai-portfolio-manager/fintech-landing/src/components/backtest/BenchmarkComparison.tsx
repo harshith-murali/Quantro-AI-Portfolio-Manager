@@ -1,4 +1,5 @@
 "use client";
+import { CheckCircle2 } from "lucide-react";
 
 interface EqPoint { close: number; equity: number; }
 
@@ -111,13 +112,13 @@ export function BenchmarkComparison({ strategy, buyAndHoldReturnPct, initialCapi
                 <td className={`py-2.5 px-3 text-right tabular-nums font-medium ${
                   row.strategyWins === true ? "text-emerald-400" : row.strategyWins === false ? "text-red-400/80" : "text-white/60"
                 }`}>
-                  {row.strategyWins === true && <span className="text-emerald-400/50 mr-1">✓</span>}
+                  {row.strategyWins === true && <CheckCircle2 size={10} className="inline-block mr-1 text-emerald-400/50" />}
                   {row.strategy}
                 </td>
                 <td className={`py-2.5 px-3 text-right tabular-nums font-medium ${
                   row.strategyWins === false ? "text-teal-400" : "text-white/30"
                 }`}>
-                  {row.strategyWins === false && <span className="text-teal-400/50 mr-1">✓</span>}
+                  {row.strategyWins === false && <CheckCircle2 size={10} className="inline-block mr-1 text-teal-400/50" />}
                   {row.benchmark}
                 </td>
               </tr>

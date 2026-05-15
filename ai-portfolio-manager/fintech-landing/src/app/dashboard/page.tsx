@@ -9,6 +9,7 @@ import { RecentHoldings } from "@/components/dashboard/RecentHoldings";
 import { MarketMoversPanel } from "@/components/dashboard/MarketMoversPanel";
 import { PortfolioVsBenchmarkChart } from "@/components/dashboard/PortfolioVsBenchmarkChart";
 import { StrategyInsightCard } from "@/components/dashboard/StrategyInsightCard";
+import { Wallet, TrendingUp, BarChart3, Bot, ChevronRight, Activity } from "lucide-react";
 
 // ── Market open logic (IST 9:15 – 15:30, Mon–Fri) ─────────────────
 function isMarketOpen() {
@@ -107,24 +108,28 @@ export default function DashboardPage() {
   const summaryCards = [
     {
       label: "Portfolio Value",
+      icon: <Wallet size={12} />,
       value: totalValue > 0 ? `₹${totalValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—",
       sub: totalPnl !== 0 ? `${totalPnl >= 0 ? "+" : ""}₹${totalPnl.toLocaleString("en-IN", { maximumFractionDigits: 0 })} P&L` : "No open positions",
       subColor: totalPnl >= 0 ? "text-emerald-400" : "text-red-400",
     },
     {
       label: "Unrealised P&L",
+      icon: <TrendingUp size={12} />,
       value: totalInvested > 0 ? `${unrealised >= 0 ? "+" : ""}₹${unrealised.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—",
       sub: totalPnlPct !== 0 ? `${totalPnlPct >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}% on invested` : "No unrealised P&L",
       subColor: unrealised >= 0 ? "text-emerald-400" : "text-red-400",
     },
     {
       label: "NIFTY 50",
+      icon: <BarChart3 size={12} />,
       value: niftyClose > 0 ? niftyClose.toLocaleString("en-IN") : "Live",
       sub: niftyClose > 0 ? `${niftyChange >= 0 ? "+" : ""}${niftyChange.toFixed(2)}% today` : "Fetching data...",
       subColor: niftyChange >= 0 ? "text-emerald-400" : "text-red-400",
     },
     {
       label: "Pending Signals",
+      icon: <Bot size={12} />,
       value: String(buyCalls || signals.length || 0),
       sub: buyCalls > 0 ? `${buyCalls} buy opportunit${buyCalls > 1 ? "ies" : "y"}` : signals.length > 0 ? `${signals.length} active signals` : "No active signals",
       subColor: "text-gold",
@@ -194,7 +199,10 @@ export default function DashboardPage() {
             transition={{ delay: i * 0.07 }}
             className="glass-card"
           >
-            <p className="text-white/30 text-[10px] uppercase tracking-wider mb-2">{label}</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-white/30 text-[10px] uppercase tracking-wider">{label}</p>
+              <span className="text-white/10">{(summaryCards[i] as any).icon}</span>
+            </div>
             <p className="text-2xl text-white font-bold tabular-nums">{value}</p>
             <p className={`text-xs mt-1 ${subColor}`}>{sub}</p>
           </motion.div>

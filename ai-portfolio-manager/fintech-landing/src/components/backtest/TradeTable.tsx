@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Trade {
   entryDate: string;
@@ -40,8 +41,8 @@ export function TradeTable({ trades }: { trades: Trade[] }) {
       <div className="flex items-center justify-between mb-4">
         <p className="text-white/40 text-[10px] uppercase tracking-wider">Trade Executions</p>
         {trades.length <= 2 && trades.length > 0 && (
-          <span className="text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded-full">
-            ⚠ Low trade count — results may not be statistically reliable
+          <span className="flex items-center gap-1.5 text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded-full">
+            <AlertTriangle size={10} /> Low trade count — results may not be statistically reliable
           </span>
         )}
       </div>
@@ -107,16 +108,16 @@ export function TradeTable({ trades }: { trades: Trade[] }) {
                 <button
                   onClick={() => setPage(p => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="px-3 py-1 text-[10px] border border-white/10 rounded text-white/40 disabled:opacity-30 hover:border-white/20 hover:text-white/60 transition-all"
+                  className="flex items-center gap-1 px-3 py-1 text-[10px] border border-white/10 rounded text-white/40 disabled:opacity-30 hover:border-white/20 hover:text-white/60 transition-all"
                 >
-                  ← Prev
+                  <ChevronLeft size={10} /> Prev
                 </button>
                 <button
                   onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                   disabled={page === totalPages - 1}
-                  className="px-3 py-1 text-[10px] border border-white/10 rounded text-white/40 disabled:opacity-30 hover:border-white/20 hover:text-white/60 transition-all"
+                  className="flex items-center gap-1 px-3 py-1 text-[10px] border border-white/10 rounded text-white/40 disabled:opacity-30 hover:border-white/20 hover:text-white/60 transition-all"
                 >
-                  Next →
+                  Next <ChevronRight size={10} />
                 </button>
               </div>
             </div>

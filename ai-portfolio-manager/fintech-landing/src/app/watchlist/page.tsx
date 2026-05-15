@@ -2,11 +2,22 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Plus, 
+  Trash2, 
+  ExternalLink, 
+  Bot, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Activity, 
+  TrendingUp, 
+  TrendingDown, 
+  X 
+} from "lucide-react";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { searchStocks, STOCK_DATABASE, type StockInfo } from "@/lib/stockData";
 
-// Stock data for watchlist with AI monitoring
 interface WatchlistStock {
   symbol: string;
   addedAt: string;
@@ -18,51 +29,9 @@ interface WatchlistStock {
 }
 
 const MOCK_WATCHLIST: WatchlistStock[] = [
-  {
-    symbol: "RELIANCE",
-    addedAt: "2026-05-13",
-    currentPrice: 2845.5,
-    changePercent: -1.4,
-    aiStatus: "ALERT",
-    aiNote: "RSI dropped below 30 — oversold territory. Strong support at ₹2,800. Consider accumulating.",
-    sector: "Energy",
-  },
-  {
-    symbol: "TCS",
-    addedAt: "2026-05-10",
-    currentPrice: 3920.0,
-    changePercent: 0.5,
-    aiStatus: "OK",
-    aiNote: "Trading within normal range. No significant technical triggers detected.",
-    sector: "IT",
-  },
-  {
-    symbol: "HDFCBANK",
-    addedAt: "2026-05-12",
-    currentPrice: 1680.75,
-    changePercent: 1.8,
-    aiStatus: "WARNING",
-    aiNote: "RSI at 74 — approaching overbought. MACD momentum slowing. Consider setting stop-loss at ₹1,640.",
-    sector: "Banking",
-  },
-  {
-    symbol: "INFY",
-    addedAt: "2026-05-14",
-    currentPrice: 1425.3,
-    changePercent: -2.1,
-    aiStatus: "ALERT",
-    aiNote: "Mean reversion signal at 200-DMA. Oversold RSI with improving MACD divergence — potential reversal setup.",
-    sector: "IT",
-  },
-  {
-    symbol: "SUNPHARMA",
-    addedAt: "2026-05-11",
-    currentPrice: 1598.0,
-    changePercent: 0.3,
-    aiStatus: "OK",
-    aiNote: "Consolidating in a narrow range. Sector rotation into pharma could provide upside catalyst.",
-    sector: "Pharma",
-  },
+  { symbol: "RELIANCE", addedAt: "2024-05-10", currentPrice: 2845.50, changePercent: -1.2, aiStatus: "OK", aiNote: "Solid support at 2800. Fundamentals remain strong.", sector: "Energy" },
+  { symbol: "TCS",      addedAt: "2024-05-12", currentPrice: 3920.00, changePercent: 0.5,  aiStatus: "WARNING", aiNote: "Approaching supply zone. Potential for minor correction.", sector: "IT" },
+  { symbol: "ZOMATO",   addedAt: "2024-05-14", currentPrice: 154.20,  changePercent: 3.2,  aiStatus: "ALERT", aiNote: "Volume breakout detected. Bullish momentum acceleration.", sector: "FMCG" },
 ];
 
 const STATUS_STYLES = {
@@ -72,7 +41,7 @@ const STATUS_STYLES = {
     border: "border-emerald-500/20",
     bg: "bg-emerald-500/5",
     text: "text-emerald-400",
-    icon: "✓",
+    icon: <CheckCircle2 size={12} />,
   },
   WARNING: {
     label: "Watch",
@@ -80,7 +49,7 @@ const STATUS_STYLES = {
     border: "border-yellow-500/20",
     bg: "bg-yellow-500/5",
     text: "text-yellow-400",
-    icon: "⚠",
+    icon: <AlertTriangle size={12} />,
   },
   ALERT: {
     label: "Action Needed",
@@ -88,7 +57,7 @@ const STATUS_STYLES = {
     border: "border-red-500/20",
     bg: "bg-red-500/5",
     text: "text-red-400",
-    icon: "●",
+    icon: <Activity size={12} />,
   },
 };
 
@@ -118,7 +87,7 @@ export default function WatchlistPage() {
   };
 
   const addToWatchlist = (sym?: string) => {
-    const symbol = (sym ?? addSymbol).trim().toUpperCase();
+    const symbol = (typeof sym === "string" ? sym : addSymbol).trim().toUpperCase();
     if (!symbol) return;
     if (watchlist.find((w) => w.symbol === symbol)) {
       setAddSymbol("");
@@ -187,9 +156,9 @@ export default function WatchlistPage() {
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="px-5 py-2.5 rounded-full bg-gold/10 border border-gold/30 text-gold text-xs font-semibold hover:bg-gold/20 transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gold/10 border border-gold/30 text-gold text-xs font-semibold hover:bg-gold/20 transition-all"
         >
-          + Add Stock
+          <Plus size={14} /> Add Stock
         </button>
       </div>
 
@@ -237,7 +206,7 @@ export default function WatchlistPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-white font-bold text-lg">{stock.symbol}</p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${style.bg} ${style.text} font-medium border ${style.border}`}>
+                      <span className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full ${style.bg} ${style.text} font-medium border ${style.border}`}>
                         {style.icon} {style.label}
                       </span>
                     </div>
@@ -245,8 +214,9 @@ export default function WatchlistPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-white font-semibold tabular-nums">₹{stock.currentPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
-                    <p className={`text-xs tabular-nums ${stock.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {stock.changePercent >= 0 ? "+" : ""}{stock.changePercent.toFixed(2)}%
+                    <p className={`flex items-center justify-end gap-1 text-xs tabular-nums ${stock.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {stock.changePercent >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      {Math.abs(stock.changePercent).toFixed(2)}%
                     </p>
                   </div>
                 </div>
@@ -254,8 +224,8 @@ export default function WatchlistPage() {
                 {/* AI Note */}
                 <div className={`p-3 rounded-xl ${style.bg} border ${style.border} mb-4`}>
                   <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 rounded-full bg-gold/20 border border-gold/40 flex items-center justify-center text-gold text-[8px] font-bold mt-0.5 shrink-0">
-                      AI
+                    <div className="w-5 h-5 rounded-full bg-gold/20 border border-gold/40 flex items-center justify-center text-gold shrink-0">
+                      <Bot size={10} />
                     </div>
                     <p className="text-white/70 text-xs leading-relaxed">{stock.aiNote}</p>
                   </div>
@@ -265,15 +235,15 @@ export default function WatchlistPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => router.push(`/signals/${stock.symbol}`)}
-                    className="flex-1 py-2 rounded-xl border border-gold/30 bg-gold/10 text-gold text-xs font-medium hover:bg-gold/20 transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border border-gold/30 bg-gold/10 text-gold text-xs font-medium hover:bg-gold/20 transition-all"
                   >
-                    View Details
+                    <ExternalLink size={12} /> View Details
                   </button>
                   <button
                     onClick={() => removeFromWatchlist(stock.symbol)}
                     className="px-3 py-2 rounded-xl border border-white/10 text-white/30 text-xs font-medium hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/5 transition-all"
                   >
-                    Remove
+                    <Trash2 size={12} />
                   </button>
                 </div>
               </motion.div>
@@ -284,7 +254,7 @@ export default function WatchlistPage() {
 
       {filtered.length === 0 && (
         <div className="py-24 text-center text-white/20">
-          <p className="text-5xl mb-4">◌</p>
+          <Activity size={48} className="mx-auto mb-4 opacity-20" />
           <p>{filter === "ALL" ? "Your watchlist is empty. Add stocks to monitor." : "No stocks match this filter."}</p>
         </div>
       )}
@@ -311,8 +281,8 @@ export default function WatchlistPage() {
                   <h2 className="text-xl font-bold text-gold">Add to Watchlist</h2>
                   <p className="text-white/40 text-xs mt-1">AI will continuously monitor this stock</p>
                 </div>
-                <button onClick={() => setShowAdd(false)} className="text-white/30 hover:text-white text-xl">
-                  ×
+                <button onClick={() => setShowAdd(false)} className="text-white/30 hover:text-white transition-colors">
+                  <X size={20} />
                 </button>
               </div>
 
@@ -346,8 +316,9 @@ export default function WatchlistPage() {
                               <p className="text-white/30 text-[10px]">{stock.symbol} · {stock.sector}</p>
                             </div>
                           </div>
-                          <span className={`text-[11px] font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                            {stock.changePct >= 0 ? "▲" : "▼"} {Math.abs(stock.changePct).toFixed(2)}%
+                          <span className={`flex items-center gap-1 text-[11px] font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            {stock.changePct >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                            {Math.abs(stock.changePct).toFixed(2)}%
                           </span>
                         </button>
                       ))}
@@ -370,7 +341,7 @@ export default function WatchlistPage() {
                 </div>
 
                 <button
-                  onClick={addToWatchlist}
+                  onClick={() => addToWatchlist()}
                   disabled={!addSymbol.trim()}
                   className="w-full py-3 rounded-full bg-gold hover:bg-gold/90 text-black font-semibold text-sm uppercase tracking-wider transition-all disabled:opacity-30"
                 >

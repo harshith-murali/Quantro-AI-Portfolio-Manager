@@ -1,5 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
+import { 
+  User, 
+  Mail, 
+  Shield, 
+  Target, 
+  Calendar, 
+  Save, 
+  CheckCircle2
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -345,7 +354,9 @@ export default function ProfilePage() {
                 </div>
 
                 {saveMsg && (
-                  <p className="text-emerald-400 text-sm text-center">✓ {saveMsg}</p>
+                  <p className="flex items-center justify-center gap-2 text-emerald-400 text-sm text-center font-medium">
+                    <CheckCircle2 size={16} /> {saveMsg}
+                  </p>
                 )}
 
                 <button type="submit" disabled={saving}

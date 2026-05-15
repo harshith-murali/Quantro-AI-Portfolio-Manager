@@ -1,6 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { 
+  RefreshCcw, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Bot, 
+  ArrowRight, 
+  Search, 
+  Send, 
+  X,
+  Target,
+  Zap,
+  TrendingUp,
+  BrainCircuit,
+  MessageSquare,
+  Sparkles
+} from "lucide-react";
 import { useAuth } from "@/lib/useAuth";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
@@ -113,7 +129,7 @@ export default function AIAdvisorPage() {
     setBuying(true); setBuyMsg(""); setBuyErr("");
     try {
       await api.portfolio.trade({ symbol: activeRec.symbol, action:"BUY", quantity: Number(buyQty), price: activeRec.price }, accessToken);
-      setBuyMsg(`✓ Bought ${buyQty} × ${activeRec.symbol}`);
+      setBuyMsg(`Order successful: ${buyQty} × ${activeRec.symbol}`);
       setTimeout(() => { setActiveRec(null); setBuyMsg(""); setBuyQty(""); }, 1800);
     } catch(e:any) { setBuyErr(e.message ?? "Trade failed"); }
     finally { setBuying(false); }
@@ -185,12 +201,10 @@ export default function AIAdvisorPage() {
             <button
               onClick={fetchRecommendations}
               disabled={recsLoading}
-              className={`p-2 rounded-lg border border-white/10 text-white/40 hover:text-white hover:bg-white/5 transition-all ${recsLoading ? 'animate-spin opacity-50' : ''}`}
+              className={`p-2 rounded-lg border border-white/10 text-white/40 hover:text-white hover:bg-white/5 transition-all ${recsLoading ? 'opacity-50' : ''}`}
               title="Refresh Recommendations"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <RefreshCcw size={16} className={recsLoading ? 'animate-spin' : ''} />
             </button>
             <span className="px-3 py-1.5 rounded-full bg-gold/10 border border-gold/25 text-gold text-[10px] uppercase tracking-wider font-semibold">
               {riskAppetite}
@@ -209,7 +223,7 @@ export default function AIAdvisorPage() {
           </div>
         ) : recsError ? (
           <div className="py-16 text-center">
-            <p className="text-4xl mb-3 text-red-400/50">⚠</p>
+            <AlertTriangle size={48} className="mx-auto mb-3 text-red-400/50" />
             <p className="text-white/70 text-sm mb-1">AI Advisor Offline</p>
             <p className="text-white/40 text-xs">{recsError}</p>
           </div>
@@ -292,9 +306,10 @@ export default function AIAdvisorPage() {
           <button
             onClick={fetchPortfolioInsight}
             disabled={aiLoading}
-            className="px-5 py-2 rounded-full border border-gold/30 text-gold text-xs font-semibold hover:bg-gold/10 transition-all disabled:opacity-40"
+            className="flex items-center gap-2 px-5 py-2 rounded-full border border-gold/30 text-gold text-xs font-semibold hover:bg-gold/10 transition-all disabled:opacity-40"
           >
-            {aiLoading ? "Analysing…" : "Run Analysis →"}
+            {aiLoading ? <RefreshCcw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            <span>{aiLoading ? "Analysing…" : "Run Analysis"}</span>
           </button>
         </div>
         <AnimatePresence>
@@ -302,9 +317,10 @@ export default function AIAdvisorPage() {
             <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
               className="mt-4 p-6 rounded-2xl bg-white/[0.025] border border-white/[0.06]">
               <MarkdownView content={aiInsight} />
-              <p className="text-white/20 text-[10px] mt-5 border-t border-white/[0.05] pt-3">
-                ⚠ AI-generated insight. Not financial advice.
-              </p>
+              <div className="flex items-center gap-2 text-white/20 text-[10px] mt-5 border-t border-white/[0.05] pt-3">
+                <AlertTriangle size={10} />
+                <span>AI-generated insight. Not financial advice.</span>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -339,9 +355,10 @@ export default function AIAdvisorPage() {
           <button
             onClick={handleEnquire}
             disabled={enquiring || !enquiry.trim()}
-            className="px-6 py-2.5 rounded-full bg-gold text-[#060606] text-sm font-bold hover:bg-[#e8c97a] transition-all disabled:opacity-40 shrink-0"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-gold text-[#060606] text-sm font-bold hover:bg-[#e8c97a] transition-all disabled:opacity-40 shrink-0"
           >
-            {enquiring ? "…" : "Enquire"}
+            {enquiring ? <RefreshCcw size={16} className="animate-spin" /> : <Search size={16} />}
+            <span>{enquiring ? "" : "Enquire"}</span>
           </button>
         </div>
         <AnimatePresence>
@@ -368,17 +385,19 @@ export default function AIAdvisorPage() {
           <button
             onClick={handleAsk}
             disabled={asking || !question.trim()}
-            className="px-6 py-2.5 rounded-full bg-gold text-[#060606] text-sm font-bold hover:bg-[#e8c97a] transition-all disabled:opacity-40 shrink-0"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-gold text-[#060606] text-sm font-bold hover:bg-[#e8c97a] transition-all disabled:opacity-40 shrink-0"
           >
-            {asking ? "…" : "Ask"}
+            {asking ? <RefreshCcw size={16} className="animate-spin" /> : <Send size={16} />}
+            <span>{asking ? "" : "Ask"}</span>
           </button>
         </div>
         {/* Quick prompts */}
         <div className="flex gap-2 flex-wrap mb-4">
           {["What should I buy next?","Am I over-exposed to one sector?","What is my risk level?","Best defensive stocks?"].map(q=>(
             <button key={q} onClick={()=>setQuestion(q)}
-              className="px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/40 text-xs hover:text-white hover:border-white/20 transition-all">
-              {q}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/40 text-xs hover:text-white hover:border-white/20 transition-all group">
+              <MessageSquare size={12} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+              <span>{q}</span>
             </button>
           ))}
         </div>
@@ -386,11 +405,14 @@ export default function AIAdvisorPage() {
           {askResult && (
             <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
               className="p-4 rounded-2xl bg-white/[0.025] border border-gold/10">
-              <p className="text-gold text-[10px] uppercase tracking-wider mb-2">AI Response</p>
-              <MarkdownView content={askResult} />
-              <p className="text-white/20 text-[10px] mt-4 border-t border-white/[0.05] pt-3">
-                ⚠ AI-generated response. Verify all market data independently.
+              <p className="text-gold text-[10px] uppercase tracking-wider mb-2 flex items-center gap-2">
+                <BrainCircuit size={14} /> AI Response
               </p>
+              <MarkdownView content={askResult} />
+              <div className="flex items-center gap-2 text-white/20 text-[10px] mt-4 border-t border-white/[0.05] pt-3">
+                <AlertTriangle size={10} />
+                <span>AI-generated response. Verify all market data independently.</span>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -412,7 +434,9 @@ export default function AIAdvisorPage() {
                   <p className="text-white/40 text-xs">{activeRec.sector} · ₹{activeRec.price.toLocaleString("en-IN")}/share</p>
                 </div>
                 <button onClick={()=>setActiveRec(null)}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white text-lg transition-all">×</button>
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all">
+                  <X size={18} />
+                </button>
               </div>
 
               <div className="p-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15 mb-5">
@@ -431,12 +455,13 @@ export default function AIAdvisorPage() {
                 </p>
               </div>
 
-              {buyMsg && <p className="text-emerald-400 text-sm text-center mb-3">{buyMsg}</p>}
+              {buyMsg && <p className="flex items-center justify-center gap-2 text-emerald-400 text-sm text-center mb-3"><CheckCircle2 size={16} /> {buyMsg}</p>}
               {buyErr && <p className="text-red-400 text-sm text-center mb-3">{buyErr}</p>}
 
               <button onClick={handleBuy} disabled={buying||!buyQty}
-                className="w-full py-4 rounded-full bg-emerald-500 text-black font-bold text-sm uppercase tracking-[0.15em] hover:bg-emerald-400 hover:-translate-y-0.5 transition-all disabled:opacity-40">
-                {buying ? "Placing order…" : `Buy ${buyQty||"?"} × ${activeRec.symbol}`}
+                className="w-full py-4 rounded-full bg-emerald-500 text-black font-bold text-sm uppercase tracking-[0.15em] hover:bg-emerald-400 hover:-translate-y-0.5 transition-all disabled:opacity-40 flex items-center justify-center gap-2">
+                {buying ? <RefreshCcw size={18} className="animate-spin" /> : <Zap size={18} />}
+                <span>{buying ? "Placing order…" : `Buy ${buyQty||"?"} × ${activeRec.symbol}`}</span>
               </button>
             </motion.div>
           </motion.div>

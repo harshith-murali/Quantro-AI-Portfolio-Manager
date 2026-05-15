@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 
+import { Bot, Activity, Play, PieChart, ArrowRight } from "lucide-react";
+
 interface Signal { symbol: string; signal: string; changePercent?: number; rsi?: number; }
 interface Mover { symbol: string; pnlPercent: number; }
 
@@ -84,17 +86,20 @@ export function MarketMoversPanel({ signals, gainers, losers }: Props) {
       )}
 
       <div className="border-t border-white/5 pt-4 flex flex-col gap-2.5 mt-auto">
-        <p className="text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Quick Actions</p>
+        <p className="text-white/30 text-[10px] uppercase tracking-wider mb-1">Quick Actions</p>
         {[
-          { href: "/ai",        label: "🤖 AI Advisor" },
-          { href: "/signals",   label: "📡 View Signals" },
-          { href: "/backtest",  label: "⚙ Run Backtest" },
-          { href: "/portfolio", label: "📊 My Portfolio" },
+          { href: "/ai",        label: "AI Advisor",    icon: <Bot size={14} /> },
+          { href: "/signals",   label: "View Signals",   icon: <Activity size={14} /> },
+          { href: "/backtest",  label: "Run Backtest",   icon: <Play size={14} /> },
+          { href: "/portfolio", label: "My Portfolio",  icon: <PieChart size={14} /> },
         ].map(a => (
           <Link key={a.href} href={a.href}
-            className="flex items-center justify-between text-sm text-white/50 hover:text-gold transition-colors group">
-            <span>{a.label}</span>
-            <span className="text-white/20 group-hover:text-gold transition-colors">→</span>
+            className="flex items-center justify-between text-xs text-white/40 hover:text-gold transition-colors group px-1">
+            <div className="flex items-center gap-2.5">
+              <span className="text-white/20 group-hover:text-gold/50 transition-colors">{a.icon}</span>
+              <span>{a.label}</span>
+            </div>
+            <ArrowRight size={12} className="text-white/10 group-hover:text-gold transition-all group-hover:translate-x-0.5" />
           </Link>
         ))}
       </div>

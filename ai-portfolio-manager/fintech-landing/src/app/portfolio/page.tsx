@@ -2,6 +2,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Wallet as WalletIcon, 
+  History, 
+  TrendingUp, 
+  TrendingDown,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight
+} from "lucide-react";
 import { useStore } from "@/lib/store";
 import * as XLSX from "xlsx";
 import { api } from "@/lib/api";
@@ -358,7 +369,7 @@ export default function PortfolioPage() {
                   <input type="number" value={tradeQty} onChange={e => setTradeQty(e.target.value)}
                     placeholder="Number of shares" className="auth-input" />
                 </div>
-                {tradeMsg && <p className="text-sm text-emerald-400 font-medium">✓ {tradeMsg}</p>}
+                {tradeMsg && <p className="flex items-center gap-2 text-sm text-emerald-400 font-medium"><CheckCircle2 size={16} /> {tradeMsg}</p>}
                 {tradeErr && <p className="text-sm text-red-400">{tradeErr}</p>}
                 <button onClick={handleTrade}
                   className={`w-full py-3 rounded-full font-semibold text-sm uppercase tracking-wider transition-all ${showBuySell === "BUY" ? "bg-emerald-500 hover:bg-emerald-400 text-black" : "bg-red-500 hover:bg-red-400 text-white"}`}>

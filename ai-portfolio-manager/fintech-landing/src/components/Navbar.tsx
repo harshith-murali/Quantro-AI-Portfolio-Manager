@@ -3,6 +3,17 @@ import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect, useMemo } from "react";
+import { 
+  Search, 
+  ChevronDown, 
+  Bot, 
+  User as UserIcon, 
+  Wallet, 
+  BarChart3, 
+  LogOut, 
+  TrendingUp, 
+  TrendingDown 
+} from "lucide-react";
 import { useAuth } from "@/lib/useAuth";
 import { api } from "@/lib/api";
 import { searchStocks, TRENDING_STOCKS, SECTORS_GROUPED, type StockInfo } from "@/lib/stockData";
@@ -99,9 +110,7 @@ export function Navbar() {
                 <div className="relative" ref={searchRef}>
                   <div className="relative flex items-center">
                     <div className="absolute left-3 pointer-events-none z-10">
-                      <svg className="w-4 h-4 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
+                      <Search className="w-4 h-4 text-white/20" />
                     </div>
                     <input
                       type="text"
@@ -163,8 +172,8 @@ export function Navbar() {
                                     <p className="text-white/30 text-[10px]">{stock.symbol} · {stock.sector}</p>
                                   </div>
                                 </div>
-                                <span className={`text-xs font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                  {stock.changePct >= 0 ? "▲" : "▼"} {Math.abs(stock.changePct).toFixed(2)}%
+                                <span className={`flex items-center gap-1 text-xs font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                  {stock.changePct >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />} {Math.abs(stock.changePct).toFixed(2)}%
                                 </span>
                               </button>
                             ))}
@@ -198,8 +207,8 @@ export function Navbar() {
                                     <p className="text-white/30 text-[10px]">{stock.symbol}</p>
                                   </div>
                                 </div>
-                                <span className={`text-xs font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                  {stock.changePct >= 0 ? "▲" : "▼"} {Math.abs(stock.changePct).toFixed(2)}%
+                                <span className={`flex items-center gap-1 text-xs font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                  {stock.changePct >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />} {Math.abs(stock.changePct).toFixed(2)}%
                                 </span>
                               </button>
                             ))}
@@ -226,8 +235,8 @@ export function Navbar() {
                                     </div>
                                     <p className="text-white/60 text-xs group-hover/item:text-white transition-colors">{stock.name}</p>
                                   </div>
-                                  <span className={`text-[11px] font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                    {stock.changePct >= 0 ? "▲" : "▼"} {Math.abs(stock.changePct).toFixed(2)}%
+                                  <span className={`flex items-center gap-1 text-[11px] font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                    {stock.changePct >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />} {Math.abs(stock.changePct).toFixed(2)}%
                                   </span>
                                 </button>
                               ))}
@@ -277,17 +286,12 @@ export function Navbar() {
                     {initials}
                   </div>
                   {/* Chevron */}
-                  <svg
-                    className={`w-3 h-3 text-white/30 transition-transform duration-200 group-hover:text-white/60 ${dropdownOpen ? 'rotate-180' : ''}`}
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <ChevronDown className={`w-3 h-3 text-white/30 transition-transform duration-200 group-hover:text-white/60 ${dropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown panel */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 top-full mt-3 w-52 glass-panel rounded-2xl py-2 shadow-2xl border border-white/10 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="absolute right-0 top-full mt-3 w-52 bg-[#0c0c0c]/95 backdrop-blur-xl rounded-2xl py-2 shadow-2xl border border-white/10 animate-in fade-in slide-in-from-top-1 duration-150 z-50">
                     {/* User info header */}
                     <div className="px-4 py-3 border-b border-white/[0.06]">
                       <p className="text-white text-sm font-semibold truncate">{user?.name ?? "Investor"}</p>
@@ -296,18 +300,18 @@ export function Navbar() {
                     {/* Menu items */}
                     <div className="py-1.5">
                       {[
-                        { href: "/ai",        label: "AI Advisor",    icon: "🤖" },
-                        { href: "/profile",   label: "Your Profile",   icon: "👤" },
-                        { href: "/wallet",    label: "Wallet",          icon: "💳" },
-                        { href: "/portfolio", label: "Portfolio",       icon: "📊" },
+                        { href: "/ai",        label: "AI Advisor",    icon: <Bot size={16} /> },
+                        { href: "/profile",   label: "Your Profile",   icon: <UserIcon size={16} /> },
+                        { href: "/wallet",    label: "Wallet",          icon: <Wallet size={16} /> },
+                        { href: "/portfolio", label: "Portfolio",       icon: <BarChart3 size={16} /> },
                       ].map(({ href, label, icon }) => (
                         <Link
                           key={href}
                           href={href}
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/60 hover:text-white hover:bg-white/[0.04] transition-colors"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/50 hover:text-white hover:bg-white/[0.04] transition-colors group/item"
                         >
-                          <span className="text-base leading-none">{icon}</span>
+                          <span className="text-white/20 group-hover/item:text-gold transition-colors">{icon}</span>
                           {label}
                         </Link>
                       ))}
@@ -324,9 +328,9 @@ export function Navbar() {
                           setDropdownOpen(false); 
                           router.push("/"); 
                         }}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400/70 hover:text-red-400 hover:bg-red-400/[0.04] transition-colors"
+                        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400/50 hover:text-red-400 hover:bg-red-400/[0.04] transition-colors"
                       >
-                        <span className="text-base leading-none">→</span>
+                        <LogOut size={16} />
                         Sign out
                       </button>
                     </div>

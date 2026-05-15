@@ -9,6 +9,19 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area,
 } from "recharts";
+import { 
+  ArrowLeft, 
+  TrendingUp, 
+  TrendingDown, 
+  CheckCircle2, 
+  Info, 
+  ChevronUp, 
+  ChevronDown,
+  Activity,
+  Zap,
+  Target,
+  AlertTriangle
+} from "lucide-react";
 
 import { CandlestickChart } from "@/components/CandlestickChart";
 
@@ -161,7 +174,9 @@ export default function SignalDetailPage() {
         <div className="glass-card text-center max-w-sm">
           <p className="text-4xl mb-4 text-white/10">◌</p>
           <p className="text-red-400 mb-2 text-sm">{error || "Signal not found"}</p>
-          <button onClick={() => router.back()} className="gold-btn mt-4">← Back to signals</button>
+          <button onClick={() => router.back()} className="gold-btn mt-4 flex items-center justify-center gap-2 mx-auto">
+            <ArrowLeft size={16} /> Back to signals
+          </button>
         </div>
       </div>
     );
@@ -176,7 +191,7 @@ export default function SignalDetailPage() {
     <div className="min-h-screen pt-40 pb-20 px-4 md:px-8 max-w-6xl mx-auto">
       {/* Back */}
       <button onClick={() => router.back()} className="text-white/30 text-sm mb-6 hover:text-white transition-colors flex items-center gap-2">
-        ← Back to signals
+        <ArrowLeft size={14} /> Back to signals
       </button>
 
       {/* Header */}
@@ -266,7 +281,7 @@ export default function SignalDetailPage() {
                   <div className="space-y-2">
                     {risks.map((r, i) => (
                       <div key={i} className="flex items-center gap-3 text-sm">
-                        <span className="text-red-400/60 text-xs">▲</span>
+                        <AlertTriangle size={14} className="text-red-400/60" />
                         <span className="text-white/60">{r}</span>
                       </div>
                     ))}
@@ -488,14 +503,20 @@ export default function SignalDetailPage() {
           {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
           {tradeSuccess && (
             <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-center">
-              <p className="text-emerald-400 text-sm font-medium">✓ Order placed! Redirecting…</p>
+            <p className="text-emerald-400 text-sm font-medium flex items-center justify-center gap-2">
+              <CheckCircle2 size={16} /> Order placed! Redirecting…
+            </p>
             </div>
           )}
 
           <button onClick={handleTrade} disabled={isTrading || tradeSuccess}
             className={`w-full py-3.5 rounded-full font-bold text-sm uppercase tracking-wider transition-all ${tradeType === "BUY"
               ? "bg-emerald-500 hover:bg-emerald-400 text-black" : "bg-red-500 hover:bg-red-400 text-white"}`}>
-            {isTrading ? "Executing…" : tradeSuccess ? "Done ✓" : `Place ${tradeType} Order`}
+            {isTrading ? "Executing…" : tradeSuccess ? (
+              <span className="flex items-center justify-center gap-2">
+                <CheckCircle2 size={16} /> Done
+              </span>
+            ) : `Place ${tradeType} Order`}
           </button>
 
           <p className="text-[10px] text-white/20 text-center mt-4 uppercase tracking-wider">

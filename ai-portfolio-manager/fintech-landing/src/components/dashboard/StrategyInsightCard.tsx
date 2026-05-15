@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { Shield, Activity, Zap, Bot, ArrowRight } from "lucide-react";
 
 interface Props {
   riskAppetite: string;
@@ -26,8 +27,11 @@ export function StrategyInsightCard({ riskAppetite, activeSignals, buyCalls, aiS
   const riskColor = RISK_COLORS[riskAppetite] ?? "text-white/40";
 
   return (
-    <div className="glass-card flex flex-col gap-4">
-      <h2 className="text-lg text-white font-semibold">Market Strategy</h2>
+    <div className="glass-card flex flex-col gap-4 h-full">
+      <div className="flex items-center gap-2">
+        <Shield size={18} className="text-gold" />
+        <h2 className="text-lg text-white font-semibold">Market Strategy</h2>
+      </div>
 
       <p className="text-sm text-white/50 leading-relaxed">
         Your strategy is calibrated for a{" "}
@@ -36,7 +40,10 @@ export function StrategyInsightCard({ riskAppetite, activeSignals, buyCalls, aiS
 
       {aiSummary ? (
         <div className="p-4 bg-gold/[0.04] rounded-xl border border-gold/15">
-          <p className="text-gold font-medium text-[10px] uppercase tracking-widest mb-2">AI Suggestion</p>
+          <div className="flex items-center gap-2 mb-2 text-gold">
+            <Bot size={14} />
+            <p className="font-medium text-[10px] uppercase tracking-widest">AI Suggestion</p>
+          </div>
           <p className="text-white/65 text-sm leading-relaxed">{aiSummary}</p>
         </div>
       ) : (
@@ -45,21 +52,24 @@ export function StrategyInsightCard({ riskAppetite, activeSignals, buyCalls, aiS
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3 text-center">
+      <div className="grid grid-cols-3 gap-3 text-center mt-2">
         {[
-          { label: "Risk Score", value: riskLabel, color: riskColor },
-          { label: "Active Signals", value: String(activeSignals), color: "text-white" },
-          { label: "Buy Calls", value: String(buyCalls), color: "text-gold" },
-        ].map(({ label, value, color }) => (
+          { label: "Risk Score", value: riskLabel, color: riskColor, icon: <Shield size={12} /> },
+          { label: "Active Signals", value: String(activeSignals), color: "text-white", icon: <Activity size={12} /> },
+          { label: "Buy Calls", value: String(buyCalls), color: "text-gold", icon: <Zap size={12} /> },
+        ].map(({ label, value, color, icon }) => (
           <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
             <p className={`text-xl font-bold tabular-nums ${color}`}>{value}</p>
-            <p className="text-white/25 text-[10px] uppercase tracking-wider mt-1">{label}</p>
+            <div className="flex items-center justify-center gap-1.5 text-white/25 mt-1">
+              {icon}
+              <p className="text-[10px] uppercase tracking-wider">{label}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      <Link href="/ai" className="gold-btn block text-center mt-auto">
-        Get AI Recommendations →
+      <Link href="/ai" className="gold-btn w-full flex items-center justify-center gap-2 mt-auto">
+        Get AI Recommendations <ArrowRight size={16} />
       </Link>
     </div>
   );

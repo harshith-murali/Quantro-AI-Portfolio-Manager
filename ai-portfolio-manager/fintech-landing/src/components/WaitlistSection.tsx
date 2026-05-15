@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { CheckCircle2, ArrowRight } from "lucide-react";
 import { Reveal } from "./Reveal";
 
 export function WaitlistSection() {
@@ -54,8 +55,8 @@ export function WaitlistSection() {
           </div>
 
           {status === "success" ? (
-            <div className="glass-panel rounded-3xl p-10 text-center border border-gold/20">
-              <div className="text-5xl mb-4">✓</div>
+            <div className="glass-panel rounded-3xl p-10 text-center border border-gold/20 flex flex-col items-center">
+              <CheckCircle2 size={48} className="text-gold mb-4" />
               <p className="text-gold font-semibold text-xl mb-2">You&apos;re on the list.</p>
               <p className="text-muted text-sm">We&apos;ll reach out when early access opens. Watch your inbox.</p>
             </div>
@@ -73,15 +74,19 @@ export function WaitlistSection() {
                 <button
                   type="submit"
                   disabled={status === "loading"}
-                  className="rounded-full bg-gold px-8 py-3.5 text-sm font-bold text-[#060606] transition hover:bg-[#e8c97a] hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(207,171,103,0.4)] disabled:opacity-50"
+                  className="rounded-full bg-gold px-8 py-3.5 text-sm font-bold text-[#060606] transition hover:bg-[#e8c97a] hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(207,171,103,0.4)] disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {status === "loading" ? "Joining..." : "Join Waitlist →"}
+                  {status === "loading" ? "Joining..." : (
+                    <>
+                      Join Waitlist <ArrowRight size={16} />
+                    </>
+                  )}
                 </button>
               </div>
               <div className="flex items-center justify-center gap-6 mt-6 text-xs text-white/30">
-                <span>✓ No spam, ever</span>
-                <span>✓ Early access priority</span>
-                <span>✓ Free forever tier</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 size={12} /> No spam, ever</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 size={12} /> Early access priority</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 size={12} /> Free forever tier</span>
               </div>
             </form>
           )}

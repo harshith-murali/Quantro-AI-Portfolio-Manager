@@ -1,5 +1,21 @@
 "use client";
 import { useEffect, useState, useMemo, useRef, Suspense } from "react";
+import { 
+  Search, 
+  ChevronDown, 
+  Star, 
+  CheckCircle2, 
+  X, 
+  ArrowUpRight, 
+  TrendingUp, 
+  TrendingDown,
+  Info,
+  Clock,
+  Target,
+  Zap,
+  Activity,
+  Bot
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
@@ -184,9 +200,7 @@ function SignalsPageContent() {
               }`}
             >
               Sort: {SORT_OPTIONS.find(o => o.value === sort)?.label}
-              <svg className={`w-3 h-3 transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDown size={14} className={`transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`} />
             </button>
             {sortOpen && (
               <div className="absolute left-0 top-full mt-2 w-44 rounded-xl border border-white/10 bg-[#0c0c0c]/95 backdrop-blur-xl shadow-2xl z-50 py-1 overflow-hidden">
@@ -299,7 +313,7 @@ function SignalsPageContent() {
                   onClick={() => toggleWatchlist(s.symbol)}
                   className={`px-3 py-2 rounded-xl border text-xs font-medium transition-all ${inWatchlist ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/30 hover:border-white/20 hover:text-white"}`}
                 >
-                  {inWatchlist ? "★" : "☆"}
+                  {inWatchlist ? <Star size={14} fill="currentColor" /> : <Star size={14} />}
                 </button>
               </div>
             </motion.div>
@@ -334,7 +348,9 @@ function SignalsPageContent() {
                   </h2>
                   <p className="text-white/40 text-xs mt-1">₹{tradeModal.price.toLocaleString("en-IN")} per share</p>
                 </div>
-                <button onClick={() => setTradeModal(null)} className="text-white/30 hover:text-white text-xl">×</button>
+                <button onClick={() => setTradeModal(null)} className="text-white/30 hover:text-white">
+                  <X size={20} />
+                </button>
               </div>
 
               <div className="space-y-4">
@@ -380,8 +396,8 @@ function SignalsPageContent() {
                 })()}
 
                 {tradeResult && (
-                  <p className={`text-sm font-medium ${tradeResult.ok ? "text-emerald-400" : "text-red-400"}`}>
-                    {tradeResult.ok ? "✓ " : ""}{tradeResult.msg}
+                  <p className={`flex items-center gap-2 text-sm font-medium ${tradeResult.ok ? "text-emerald-400" : "text-red-400"}`}>
+                    {tradeResult.ok ? <CheckCircle2 size={16} /> : null}{tradeResult.msg}
                   </p>
                 )}
 
