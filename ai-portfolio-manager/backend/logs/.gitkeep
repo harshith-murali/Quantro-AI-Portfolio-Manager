@@ -1,0 +1,2 @@
+# logs directory — managed by Winston
+# error.log and combined.log are auto-created at runtime

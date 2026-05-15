@@ -1,0 +1,201 @@
+// Prisma schema for FinTech JWT Auth Backend
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique
+  hashedPassword String
+  role           Role           @default(USER)
+  /// Incremented on logout to invalidate all outstanding refresh tokens
+  tokenVersion   Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  refreshTokens    RefreshToken[]
+  financialProfile FinancialProfile?
+  trades           Trade[]
+  holdings         Holding[]
+  portfolioHistory PortfolioHistory[]
+  wallet           Wallet?
+  transactions     Transaction[]
+  insightLogs      InsightLog[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  /// SHA-256 hash of the raw JWT — the raw token only ever lives in the cookie
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+enum RiskAppetite {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model FinancialProfile {
+  id               String       @id @default(cuid())
+  userId           String       @unique @map("user_id")
+  monthlyIncome    Decimal      @map("monthly_income") @db.Decimal(15, 2)
+  monthlyExpenses  Decimal      @map("monthly_expenses") @db.Decimal(15, 2)
+  currentSavings   Decimal      @map("current_savings") @db.Decimal(15, 2)
+  financialGoal    String?      @map("financial_goal") @db.VarChar(500)
+  riskAppetite     RiskAppetite @map("risk_appetite")
+  investableAmount Decimal      @map("investable_amount") @db.Decimal(15, 2)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("financial_profiles")
+}
+
+// ─── Portfolio & Trading Models ──────────────────────────────────
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+model Trade {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  symbol     String    @db.VarChar(20)
+  type       TradeType
+  quantity   Int
+  price      Decimal   @db.Decimal(15, 2)
+  total      Decimal   @db.Decimal(15, 2)
+  /// Realized P&L captured at time of SELL
+  realizedPnl Decimal? @map("realized_pnl") @db.Decimal(15, 2)
+  tradeDate  DateTime  @default(now()) @map("trade_date")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([symbol])
+  @@index([userId, symbol])
+  @@map("trades")
+}
+
+model Holding {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  symbol          String   @db.VarChar(20)
+  quantity        Int
+  averageBuyPrice Decimal  @map("average_buy_price") @db.Decimal(15, 2)
+  totalInvested   Decimal  @map("total_invested") @db.Decimal(15, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@index([userId])
+  @@map("holdings")
+}
+
+model PortfolioHistory {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  totalValue Decimal  @map("total_value") @db.Decimal(15, 2)
+  invested   Decimal  @db.Decimal(15, 2)
+  pnl        Decimal  @db.Decimal(15, 2)
+  date       DateTime @db.Date
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@map("portfolio_history")
+}
+
+// ─── Wallet & Transaction Models ──────────────────────────────────
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRADE_DEBIT
+  TRADE_CREDIT
+  PNL_CREDIT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  balance   Decimal  @default(0.00) @db.Decimal(15, 2)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id          String            @id @default(cuid())
+  userId      String            @map("user_id")
+  type        TransactionType
+  amount      Decimal           @db.Decimal(15, 2)
+  referenceId String?           @map("reference_id") @db.VarChar(50)
+  description String?           @db.VarChar(255)
+  status      TransactionStatus @default(SUCCESS)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([referenceId])
+  @@map("transactions")
+}
+
+// ─── AI Insights Models ─────────────────────────────────────────────
+
+enum InsightType {
+  PORTFOLIO_SUMMARY
+  STOCK_ADVICE
+  RISK_ANALYSIS
+  GENERAL_QA
+  STOCK_RECOMMENDATION
+}
+
+model InsightLog {
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  insightType InsightType @map("insight_type")
+  prompt      String      @db.Text
+  response    String      @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at")
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([insightType])
+  @@map("insight_logs")
+}
