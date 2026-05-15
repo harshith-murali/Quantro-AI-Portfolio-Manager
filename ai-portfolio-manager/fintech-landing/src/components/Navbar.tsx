@@ -2,9 +2,12 @@
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { api } from "@/lib/api";
+import { searchStocks, TRENDING_STOCKS, SECTORS_GROUPED, type StockInfo } from "@/lib/stockData";
+
+const PLACEHOLDER_STOCKS = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "WIPRO", "SBIN", "SUNPHARMA", "ITC", "ZOMATO"];
 
 export function Navbar() {
   const { logout, user, setUser } = useStore();
@@ -14,6 +17,22 @@ export function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [search, setSearch] = useState("");
   const dropRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [placeholderFade, setPlaceholderFade] = useState(true);
+
+  // Cycle through stock names for animated placeholder
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderFade(false);
+      setTimeout(() => {
+        setPlaceholderIdx(prev => (prev + 1) % PLACEHOLDER_STOCKS.length);
+        setPlaceholderFade(true);
+      }, 300);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
 
   const isAuthPage = pathname.startsWith("/auth");
 
@@ -25,25 +44,41 @@ export function Navbar() {
     }).catch(() => {});
   }, [accessToken, user?.name]);
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropdownOpen(false);
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchFocused(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Search results
+  const searchResults = useMemo(() => searchStocks(search), [search]);
+
+  // Pick a stock — navigate to its signal detail page
+  const pickStock = (symbol: string) => {
+    setSearch("");
+    setSearchFocused(false);
+    router.push(`/signals/${symbol}`);
+  };
+
   if (isAuthPage) return null;
 
-  // First letter of first name + first letter of last name
+  // Initials
   const initials = (() => {
-    if (!user?.name) return "I"; // Fallback to "I" for Investor
+    if (!user?.name) return "I";
     const parts = user.name.trim().split(/\s+/);
     if (parts.length === 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   })();
 
+  // Pick which sectors to show when no search query
+  const trendingSectors = ["IT", "Banking", "Energy"].map(sec => ({
+    label: sec,
+    stocks: (SECTORS_GROUPED[sec] ?? []).slice(0, 3),
+  }));
 
   return (
     <header className="fixed inset-x-0 top-[33px] z-50">
@@ -60,31 +95,154 @@ export function Navbar() {
           <nav className="hidden items-center gap-8 text-sm text-muted md:flex">
             {pathname !== '/' ? (
               <>
-                {/* Search Bar */}
-                <div className="relative flex items-center mr-4">
-                  <div className="absolute left-3 pointer-events-none">
-                    <svg className="w-4 h-4 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                {/* ── Search Bar with Dropdown ── */}
+                <div className="relative" ref={searchRef}>
+                  <div className="relative flex items-center">
+                    <div className="absolute left-3 pointer-events-none z-10">
+                      <svg className="w-4 h-4 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onFocus={() => setSearchFocused(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && search.trim()) {
+                          if (searchResults.length > 0) {
+                            pickStock(searchResults[0].symbol);
+                          } else {
+                            router.push(`/signals?search=${search}`);
+                            setSearch("");
+                            setSearchFocused(false);
+                          }
+                        }
+                        if (e.key === 'Escape') setSearchFocused(false);
+                      }}
+                      placeholder=""
+                      className="h-9 w-48 bg-white/[0.03] border border-white/10 rounded-xl pl-9 pr-4 text-xs text-white focus:outline-none focus:border-gold/30 focus:w-64 transition-all duration-300"
+                    />
+                    {/* Animated placeholder overlay */}
+                    {!search && !searchFocused && (
+                      <div className="absolute left-9 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-1 text-xs">
+                        <span className="text-white/20">Search Stocks</span>
+                        <span
+                          className="text-gold/50 font-medium transition-all duration-300"
+                          style={{ opacity: placeholderFade ? 1 : 0, transform: placeholderFade ? 'translateY(0)' : 'translateY(-4px)' }}
+                        >
+                          {PLACEHOLDER_STOCKS[placeholderIdx]}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && search.trim()) {
-                        router.push(`/signals?search=${search}`);
-                        setSearch("");
-                      }
-                    }}
-                    placeholder="Search stocks..."
-                    className="h-9 w-48 bg-white/[0.03] border border-white/10 rounded-xl pl-9 pr-4 text-xs text-white placeholder-white/20 focus:outline-none focus:border-gold/30 focus:w-64 transition-all duration-300"
-                  />
+
+                  {/* ── Search Dropdown ── */}
+                  {searchFocused && (
+                    <div className="absolute left-0 top-full mt-2 w-[340px] max-h-[420px] overflow-y-auto rounded-2xl border border-white/10 bg-[#0c0c0c]/95 backdrop-blur-xl shadow-2xl z-50 py-2">
+                      {search.trim() ? (
+                        /* ── Filtered results ── */
+                        searchResults.length > 0 ? (
+                          <div>
+                            <div className="flex items-center justify-between px-4 pt-2 pb-3">
+                              <p className="text-white/30 text-[10px] uppercase tracking-wider font-medium">Results</p>
+                              <p className="text-white/20 text-[10px]">Day Change</p>
+                            </div>
+                            {searchResults.map((stock) => (
+                              <button
+                                key={stock.symbol}
+                                onClick={() => pickStock(stock.symbol)}
+                                className="flex items-center justify-between w-full px-4 py-2.5 hover:bg-white/[0.04] transition-colors group/item"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-[10px] font-bold text-gold/80 shrink-0">
+                                    {stock.symbol.slice(0, 2)}
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-white text-xs font-medium group-hover/item:text-gold transition-colors">{stock.name}</p>
+                                    <p className="text-white/30 text-[10px]">{stock.symbol} · {stock.sector}</p>
+                                  </div>
+                                </div>
+                                <span className={`text-xs font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                  {stock.changePct >= 0 ? "▲" : "▼"} {Math.abs(stock.changePct).toFixed(2)}%
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="px-4 py-8 text-center">
+                            <p className="text-white/20 text-xs">No stocks found for &ldquo;{search}&rdquo;</p>
+                          </div>
+                        )
+                      ) : (
+                        /* ── Default: Trending stocks by sector ── */
+                        <div>
+                          {/* Trending */}
+                          <div className="px-4 pt-2 pb-2">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wider">Trending Stocks</p>
+                              <p className="text-white/20 text-[10px]">Day Change</p>
+                            </div>
+                            {TRENDING_STOCKS.map((stock) => (
+                              <button
+                                key={stock.symbol}
+                                onClick={() => pickStock(stock.symbol)}
+                                className="flex items-center justify-between w-full py-2.5 hover:bg-white/[0.04] rounded-lg px-2 transition-colors group/item"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-[10px] font-bold text-gold/80 shrink-0">
+                                    {stock.symbol.slice(0, 2)}
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-white text-xs font-medium group-hover/item:text-gold transition-colors">{stock.name}</p>
+                                    <p className="text-white/30 text-[10px]">{stock.symbol}</p>
+                                  </div>
+                                </div>
+                                <span className={`text-xs font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                  {stock.changePct >= 0 ? "▲" : "▼"} {Math.abs(stock.changePct).toFixed(2)}%
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="mx-4 border-t border-white/[0.06]" />
+
+                          {/* By sector */}
+                          {trendingSectors.map(({ label, stocks }) => (
+                            <div key={label} className="px-4 pt-3 pb-1">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider">{label}</p>
+                                <p className="text-white/15 text-[10px]">Day Change</p>
+                              </div>
+                              {stocks.map((stock) => (
+                                <button
+                                  key={stock.symbol}
+                                  onClick={() => pickStock(stock.symbol)}
+                                  className="flex items-center justify-between w-full py-2 hover:bg-white/[0.04] rounded-lg px-2 transition-colors group/item"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-7 h-7 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-[9px] font-bold text-white/40 shrink-0">
+                                      {stock.symbol.slice(0, 2)}
+                                    </div>
+                                    <p className="text-white/60 text-xs group-hover/item:text-white transition-colors">{stock.name}</p>
+                                  </div>
+                                  <span className={`text-[11px] font-medium tabular-nums ${stock.changePct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                    {stock.changePct >= 0 ? "▲" : "▼"} {Math.abs(stock.changePct).toFixed(2)}%
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <Link href="/dashboard" className={`transition hover:text-white ${pathname === '/dashboard' ? 'text-gold' : ''}`}>Dashboard</Link>
                 <Link href="/ai"        className={`transition hover:text-white ${pathname === '/ai'        ? 'text-gold' : ''}`}>AI Advisor</Link>
                 <Link href="/signals"   className={`transition hover:text-white ${pathname.startsWith('/signals') ? 'text-gold' : ''}`}>Signals</Link>
+                <Link href="/watchlist" className={`transition hover:text-white ${pathname === '/watchlist' ? 'text-gold' : ''}`}>Watchlist</Link>
                 <Link href="/portfolio" className={`transition hover:text-white ${pathname === '/portfolio' ? 'text-gold' : ''}`}>Portfolio</Link>
                 <Link href="/wallet"    className={`transition hover:text-white ${pathname === '/wallet'    ? 'text-gold' : ''}`}>Wallet</Link>
                 <Link href="/backtest"  className={`transition hover:text-white ${pathname === '/backtest'  ? 'text-gold' : ''}`}>Backtest</Link>

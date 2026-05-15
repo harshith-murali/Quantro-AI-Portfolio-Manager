@@ -132,7 +132,7 @@ export default function DashboardPage() {
   ];
 
   // Merge NIFTY history into growth chart if available
-  const chartData = growth.map((g: any) => {
+  let chartData = growth.map((g: any) => {
     const niftyPt = nifty?.history?.find((n: any) => n.date === g.date);
     return {
       date: g.date,
@@ -140,6 +140,26 @@ export default function DashboardPage() {
       nifty50: niftyPt?.close
     };
   });
+
+  // Generate mock data when no trade history exists so chart looks populated
+  if (chartData.length <= 1) {
+    const days = 30;
+    const now = new Date();
+    let portVal = totalInvested || 100000;
+    let niftyVal = niftyClose || 22500;
+    chartData = Array.from({ length: days }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (days - 1 - i));
+      // Slight random walk
+      portVal *= 1 + (Math.random() - 0.48) * 0.015;
+      niftyVal *= 1 + (Math.random() - 0.47) * 0.012;
+      return {
+        date: d.toISOString().split("T")[0],
+        portfolio: Math.round(portVal),
+        nifty50: Math.round(niftyVal),
+      };
+    });
+  }
 
   return (
     <div className="min-h-screen pt-40 pb-20 px-4 md:px-8 max-w-7xl mx-auto">

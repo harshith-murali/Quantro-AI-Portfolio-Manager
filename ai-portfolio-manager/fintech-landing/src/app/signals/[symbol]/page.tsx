@@ -459,9 +459,30 @@ export default function SignalDetailPage() {
               <span className="text-white tabular-nums">₹{signal.currentPrice.toLocaleString("en-IN")}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-white/40">Total value</span>
-              <span className="text-gold font-bold tabular-nums">₹{totalValue.toLocaleString("en-IN")}</span>
+              <span className="text-white/40">Subtotal</span>
+              <span className="text-white tabular-nums">₹{totalValue.toLocaleString("en-IN")}</span>
             </div>
+            {totalValue > 0 && (() => {
+              const percentFee = totalValue * 0.001;
+              const fee = Math.max(percentFee, 20);
+              return (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/40">Platform fee</span>
+                    <span className="text-white/60 tabular-nums">
+                      ₹{fee.toFixed(2)}
+                      <span className="text-white/20 ml-1 text-[10px]">
+                        ({percentFee >= 20 ? "0.1%" : "min ₹20"})
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm border-t border-white/5 pt-2">
+                    <span className="text-white/60 font-medium">Total</span>
+                    <span className="text-gold font-bold tabular-nums">₹{(totalValue + fee).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {error && <p className="text-red-400 text-xs mb-3">{error}</p>}

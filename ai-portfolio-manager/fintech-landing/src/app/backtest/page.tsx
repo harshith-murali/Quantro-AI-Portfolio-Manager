@@ -60,6 +60,25 @@ export default function BacktestPage() {
   const [serverError, setServerError] = useState("");
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  // Track backtest usage count (persisted in localStorage)
+  const BACKTEST_FREE_LIMIT = 5;
+  const BACKTEST_PRICE = 49;
+  const getBacktestCount = () => {
+    if (typeof window === "undefined") return 0;
+    return Number(localStorage.getItem("backtest_count") ?? 0);
+  };
+  const incrementBacktestCount = () => {
+    const count = getBacktestCount() + 1;
+    localStorage.setItem("backtest_count", String(count));
+    return count;
+  };
+  const [backtestCount, setBacktestCount] = useState(0);
+
+  useEffect(() => {
+    setBacktestCount(getBacktestCount());
+  }, []);
 
   useEffect(() => {
     if (!accessToken) router.push("/auth/login");
@@ -72,6 +91,13 @@ export default function BacktestPage() {
 
   const onSubmit = async (data: BacktestInput & { transactionCostPct?: number; slippagePct?: number }) => {
     if (!accessToken) return;
+
+    // Check free limit
+    if (backtestCount >= BACKTEST_FREE_LIMIT) {
+      setShowPaywall(true);
+      return;
+    }
+
     setServerError("");
     setReport(null);
     setRunning(true);
@@ -158,6 +184,9 @@ export default function BacktestPage() {
 
       setTimeout(() => {
         setRunning(false);
+        // Increment usage count
+        const newCount = incrementBacktestCount();
+        setBacktestCount(newCount);
         document.getElementById("results")?.scrollIntoView({ behavior: "smooth" });
       }, 400);
     } catch (e: any) {
@@ -174,7 +203,16 @@ export default function BacktestPage() {
       <div className="mb-10">
         <p className="text-white/40 text-xs uppercase tracking-[0.3em] mb-1">Testing Engine</p>
         <h1 className="text-5xl font-bold text-white">Backtesting</h1>
-        <p className="text-white/30 text-sm mt-2">Simulate strategies against historical NSE data</p>
+        <div className="flex items-center gap-4 mt-2">
+          <p className="text-white/30 text-sm">Simulate strategies against historical NSE data</p>
+          <span className={`text-[10px] px-3 py-1 rounded-full border font-medium tabular-nums ${
+            backtestCount >= BACKTEST_FREE_LIMIT
+              ? "border-red-500/30 bg-red-500/10 text-red-400"
+              : "border-gold/30 bg-gold/10 text-gold"
+          }`}>
+            {Math.max(0, BACKTEST_FREE_LIMIT - backtestCount)}/{BACKTEST_FREE_LIMIT} free runs left
+          </span>
+        </div>
       </div>
 
       {/* Config form */}
@@ -428,6 +466,58 @@ export default function BacktestPage() {
               <TradeTable trades={report.trades} />
             )}
 
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Paywall Modal */}
+      <AnimatePresence>
+        {showPaywall && (
+          <motion.div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowPaywall(false)}
+          >
+            <motion.div
+              className="glass-card max-w-sm w-full text-center"
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-14 h-14 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center text-2xl mx-auto mb-4">
+                ⚡
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Free Limit Reached</h2>
+              <p className="text-white/40 text-sm mb-6">
+                You&apos;ve used all {BACKTEST_FREE_LIMIT} free backtests. Unlock unlimited access for just <span className="text-gold font-bold">₹{BACKTEST_PRICE}</span> per run.
+              </p>
+
+              <div className="p-3 bg-gold/5 border border-gold/20 rounded-xl mb-6 text-left">
+                <p className="text-white/60 text-xs leading-relaxed">
+                  <span className="text-gold font-medium">Premium includes:</span><br />
+                  • Unlimited backtest runs<br />
+                  • Advanced strategy parameters<br />
+                  • Downloadable PDF reports<br />
+                  • Priority execution queue
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  localStorage.setItem("backtest_count", "0");
+                  setBacktestCount(0);
+                  setShowPaywall(false);
+                }}
+                className="w-full py-3 rounded-full bg-gold hover:bg-gold/90 text-black font-semibold text-sm uppercase tracking-wider transition-all mb-3"
+              >
+                Pay ₹{BACKTEST_PRICE} & Continue
+              </button>
+              <button
+                onClick={() => setShowPaywall(false)}
+                className="text-white/30 text-xs hover:text-white transition-colors"
+              >
+                Maybe later
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import type { StockSignal } from "@/lib/types";
@@ -24,6 +24,13 @@ type Filter = "ALL" | "BUY" | "HOLD" | "SELL";
 type Sort = "suitability" | "rsi" | "change" | "price";
 type SectorFilter = "ALL" | keyof typeof SECTORS;
 
+const SORT_OPTIONS: { value: Sort; label: string }[] = [
+  { value: "suitability", label: "Suitability" },
+  { value: "rsi",         label: "RSI" },
+  { value: "change",      label: "% Change" },
+  { value: "price",       label: "Price" },
+];
+
 export default function SignalsPage() {
   return (
     <Suspense fallback={<div className="min-h-screen pt-36 pb-24 text-center text-white/50">Loading signals...</div>}>
@@ -41,7 +48,18 @@ function SignalsPageContent() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("ALL");
   const [sort, setSort] = useState<Sort>("suitability");
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
   const [sector, setSector] = useState<SectorFilter>("ALL");
+
+  // Close sort dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   
   // Reactively track search param from URL
   const [search, setSearch] = useState("");
@@ -54,6 +72,12 @@ function SignalsPageContent() {
 
   const [updatedAt] = useState(() => new Date().toLocaleTimeString("en-IN"));
   const [watchlist, setWatchlist] = useState<Set<string>>(new Set());
+
+  // Trade modal state
+  const [tradeModal, setTradeModal] = useState<{ symbol: string; price: number; type: "BUY" | "SELL" } | null>(null);
+  const [tradeQty, setTradeQty] = useState("");
+  const [tradeLoading, setTradeLoading] = useState(false);
+  const [tradeResult, setTradeResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   // Mock fallback data when backend is unavailable
   const MOCK_SIGNALS: StockSignal[] = [
@@ -151,14 +175,37 @@ function SignalsPageContent() {
               </button>
             ))}
           </div>
-          {/* Sort */}
-          <select value={sort} onChange={e => setSort(e.target.value as Sort)}
-            className="auth-input sm:max-w-[160px] text-xs">
-            <option value="suitability">Sort: Suitability</option>
-            <option value="rsi">Sort: RSI</option>
-            <option value="change">Sort: % Change</option>
-            <option value="price">Sort: Price</option>
-          </select>
+          {/* Sort — custom styled dropdown */}
+          <div className="relative" ref={sortRef}>
+            <button
+              onClick={() => setSortOpen(o => !o)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium border transition-all ${
+                sortOpen ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/40 hover:text-white hover:border-white/20"
+              }`}
+            >
+              Sort: {SORT_OPTIONS.find(o => o.value === sort)?.label}
+              <svg className={`w-3 h-3 transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {sortOpen && (
+              <div className="absolute left-0 top-full mt-2 w-44 rounded-xl border border-white/10 bg-[#0c0c0c]/95 backdrop-blur-xl shadow-2xl z-50 py-1 overflow-hidden">
+                {SORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setSort(opt.value); setSortOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors ${
+                      sort === opt.value
+                        ? "bg-gold/10 text-gold"
+                        : "text-white/50 hover:text-white hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    Sort: {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {/* Sector filters */}
         <div className="flex gap-2 flex-wrap">
@@ -193,8 +240,7 @@ function SignalsPageContent() {
                     </span>
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${SIGNAL_STYLE[s.signal]}`}>{s.signal}</span>
+                <div className="flex flex-col items-end">
                   <span className="text-[10px] text-white/30">{bc}/4 bullish</span>
                 </div>
               </div>
@@ -232,13 +278,27 @@ function SignalsPageContent() {
               {/* Action buttons */}
               <div className="flex gap-2">
                 <button
+                  onClick={() => { setTradeModal({ symbol: s.symbol, price: s.currentPrice, type: "BUY" }); setTradeQty(""); setTradeResult(null); }}
+                  className="flex-1 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-all"
+                >
+                  Buy
+                </button>
+                <button
+                  onClick={() => { setTradeModal({ symbol: s.symbol, price: s.currentPrice, type: "SELL" }); setTradeQty(""); setTradeResult(null); }}
+                  className="flex-1 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-all"
+                >
+                  Sell
+                </button>
+                <button
                   onClick={() => router.push(`/signals/${s.symbol}`)}
-                  className="flex-1 py-2 rounded-xl border border-gold/30 bg-gold/10 text-gold text-xs font-medium hover:bg-gold/20 transition-all">
-                  View Details
+                  className="px-3 py-2 rounded-xl border border-gold/30 bg-gold/10 text-gold text-xs font-medium hover:bg-gold/20 transition-all"
+                >
+                  Details
                 </button>
                 <button
                   onClick={() => toggleWatchlist(s.symbol)}
-                  className={`px-3 py-2 rounded-xl border text-xs font-medium transition-all ${inWatchlist ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/30 hover:border-white/20 hover:text-white"}`}>
+                  className={`px-3 py-2 rounded-xl border text-xs font-medium transition-all ${inWatchlist ? "border-gold/40 bg-gold/10 text-gold" : "border-white/10 text-white/30 hover:border-white/20 hover:text-white"}`}
+                >
                   {inWatchlist ? "★" : "☆"}
                 </button>
               </div>
@@ -253,6 +313,114 @@ function SignalsPageContent() {
           <p>No signals match your filter.</p>
         </div>
       )}
+
+      {/* ── Trade Modal ── */}
+      <AnimatePresence>
+        {tradeModal && (
+          <motion.div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setTradeModal(null)}
+          >
+            <motion.div
+              className="glass-card max-w-sm w-full"
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className={`text-xl font-bold ${tradeModal.type === "BUY" ? "text-emerald-400" : "text-red-400"}`}>
+                    {tradeModal.type} {tradeModal.symbol}
+                  </h2>
+                  <p className="text-white/40 text-xs mt-1">₹{tradeModal.price.toLocaleString("en-IN")} per share</p>
+                </div>
+                <button onClick={() => setTradeModal(null)} className="text-white/30 hover:text-white text-xl">×</button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="field-label">Quantity</label>
+                  <input
+                    type="number"
+                    value={tradeQty}
+                    onChange={e => setTradeQty(e.target.value)}
+                    placeholder="Number of shares"
+                    className="auth-input"
+                    min={1}
+                    autoFocus
+                  />
+                </div>
+
+                {tradeQty && Number(tradeQty) > 0 && (() => {
+                  const subtotal = Number(tradeQty) * tradeModal.price;
+                  const percentFee = subtotal * 0.001;
+                  const fee = Math.max(percentFee, 20);
+                  const total = subtotal + fee;
+                  return (
+                    <div className="border-t border-white/5 pt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/40">Subtotal</span>
+                        <span className="text-white tabular-nums">₹{subtotal.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/40">Platform fee</span>
+                        <span className="text-white/60 tabular-nums">
+                          ₹{fee.toFixed(2)}
+                          <span className="text-white/20 ml-1 text-[10px]">
+                            ({percentFee >= 20 ? "0.1%" : "min ₹20"})
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm border-t border-white/5 pt-2">
+                        <span className="text-white/60 font-medium">Total</span>
+                        <span className="text-gold font-bold tabular-nums">₹{total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {tradeResult && (
+                  <p className={`text-sm font-medium ${tradeResult.ok ? "text-emerald-400" : "text-red-400"}`}>
+                    {tradeResult.ok ? "✓ " : ""}{tradeResult.msg}
+                  </p>
+                )}
+
+                <button
+                  disabled={tradeLoading || !tradeQty || Number(tradeQty) < 1}
+                  onClick={async () => {
+                    if (!accessToken || !tradeModal) return;
+                    setTradeLoading(true);
+                    setTradeResult(null);
+                    try {
+                      await api.portfolio.trade(
+                        { symbol: tradeModal.symbol, type: tradeModal.type, quantity: Number(tradeQty), price: tradeModal.price },
+                        accessToken
+                      );
+                      setTradeResult({ ok: true, msg: `${tradeModal.type} order placed! Redirecting…` });
+                      setTimeout(() => { setTradeModal(null); router.push("/portfolio"); }, 1500);
+                    } catch (e: any) {
+                      setTradeResult({ ok: false, msg: e.message ?? "Trade failed" });
+                    } finally {
+                      setTradeLoading(false);
+                    }
+                  }}
+                  className={`w-full py-3 rounded-full font-semibold text-sm uppercase tracking-wider transition-all disabled:opacity-30 ${
+                    tradeModal.type === "BUY"
+                      ? "bg-emerald-500 hover:bg-emerald-400 text-black"
+                      : "bg-red-500 hover:bg-red-400 text-white"
+                  }`}
+                >
+                  {tradeLoading ? "Executing…" : `Confirm ${tradeModal.type}`}
+                </button>
+
+                <p className="text-[10px] text-white/20 text-center uppercase tracking-wider">
+                  Virtual trade · No real funds
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

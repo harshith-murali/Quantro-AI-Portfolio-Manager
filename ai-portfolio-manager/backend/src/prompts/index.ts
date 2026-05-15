@@ -22,10 +22,10 @@ Portfolio Summary:
 - Total P&L: ${summaryStats.totalPnl}
 
 Current Holdings:
-${holdings.map(h => `- ${h.symbol}: ${h.quantity} shares @ $${h.averageBuyPrice}`).join('\n')}
+${holdings.map(h => `- ${h.symbol}: ${h.quantity} shares @ ₹${h.averageBuyPrice}`).join('\n')}
 
 Recent Trades (Last 5):
-${trades.slice(0, 5).map(t => `- ${t.type} ${t.quantity} ${t.symbol} @ $${t.price}`).join('\n')}
+${trades.slice(0, 5).map(t => `- ${t.type} ${t.quantity} ${t.symbol} @ ₹${t.price}`).join('\n')}
 `;
 
   return `${SYSTEM_PROMPT}\n\nBased on the following user context, provide a brief, actionable overall health summary of their portfolio.\n\nContext:\n${context}`;
@@ -39,7 +39,7 @@ export function buildStockAdvicePrompt(
 ): string {
   const holding = holdings.find(h => h.symbol === symbol);
   const holdingContext = holding
-    ? `User currently holds ${holding.quantity} shares of ${symbol} at an average price of $${holding.averageBuyPrice}.`
+    ? `User currently holds ${holding.quantity} shares of ${symbol} at an average price of ₹${holding.averageBuyPrice}.`
     : `User does not currently hold any shares of ${symbol}.`;
 
   const context = `
@@ -102,13 +102,13 @@ export function buildRecommendationPrompt(
   const context = `
 User Profile:
 - Risk Appetite: ${profile?.riskAppetite || 'Unknown'}
-- Wallet Balance: $${walletBalance}
+- Wallet Balance: ₹${walletBalance}
 
 Current Holdings:
 ${holdings.map(h => `- ${h.symbol}: ${h.quantity} shares`).join('\n')}
 
 Market Options (NIFTY 50 Sample):
-${niftyList.map(s => `- ${s.symbol}: $${s.price}`).join('\n')}
+${niftyList.map(s => `- ${s.symbol}: ₹${s.price}`).join('\n')}
 `;
 
   return `${SYSTEM_PROMPT}\n\nBased on the following user context and available market options, recommend exactly 3 to 5 stocks for the user to buy. Output ONLY valid JSON in the following format, with no markdown formatting or extra text:

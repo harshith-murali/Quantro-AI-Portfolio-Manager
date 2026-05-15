@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
+import * as XLSX from "xlsx";
 import { api } from "@/lib/api";
 import type { PortfolioSnapshot } from "@/lib/types";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from "recharts";
@@ -125,18 +126,6 @@ export default function PortfolioPage() {
           <p className={`text-base mt-1 tabular-nums ${pnlPositive ? "text-emerald-400" : "text-red-400"}`}>
             {pnlPositive ? "+" : ""}₹{totalPnl.toLocaleString("en-IN")} total P&L
           </p>
-        </div>
-        <div className="flex gap-2 mt-2">
-          <button
-            onClick={() => { setShowBuySell("BUY"); setSelectedSymbol(""); setTradeQty(""); setTradeMsg(""); setTradeErr(""); }}
-            className="px-5 py-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition-all">
-            + Buy
-          </button>
-          <button
-            onClick={() => { setShowBuySell("SELL"); setSelectedSymbol(""); setTradeQty(""); setTradeMsg(""); setTradeErr(""); }}
-            className="px-5 py-2.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/20 transition-all">
-            − Sell
-          </button>
         </div>
       </div>
 
@@ -275,11 +264,51 @@ export default function PortfolioPage() {
       {/* Trade history */}
       {trades.length > 0 && (
         <div className="glass-card">
-          <p className="text-white/40 text-[10px] uppercase tracking-wider mb-4">Trade History</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-white/40 text-[10px] uppercase tracking-wider">Trade History</p>
+            <button
+              onClick={() => {
+                // Generate XLSX
+                const data = trades.map((t: any) => {
+                  const price = Number(t.price ?? 0);
+                  const qty = Number(t.quantity ?? 0);
+                  const value = qty * price;
+                  const fee = Math.max(value * 0.001, 20);
+                  const tradeType = t.action ?? t.type;
+                  const date = new Date(t.tradeDate ?? t.createdAt).toLocaleDateString("en-IN");
+                  return {
+                    Date: date,
+                    Symbol: t.symbol,
+                    Action: tradeType,
+                    Quantity: qty,
+                    "Price (₹)": Number(price.toFixed(2)),
+                    "Value (₹)": Number(value.toFixed(2)),
+                    "Platform Fee (₹)": Number(fee.toFixed(2)),
+                    "Net Total (₹)": Number((value + fee).toFixed(2)),
+                  };
+                });
+                const ws = XLSX.utils.json_to_sheet(data);
+                // Set column widths
+                ws["!cols"] = [
+                  { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 8 },
+                  { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 14 },
+                ];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Trade Ledger");
+                XLSX.writeFile(wb, `trade_ledger_${new Date().toISOString().split("T")[0]}.xlsx`);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gold/30 bg-gold/10 text-gold text-[10px] font-medium uppercase tracking-wider hover:bg-gold/20 transition-all"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export Excel
+            </button>
+          </div>
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-white/5">
-                {["Date", "Symbol", "Action", "Qty", "Price", "Value"].map(h => (
+                {["Date", "Symbol", "Action", "Qty", "Price", "Value", "Fee"].map(h => (
                   <th key={h} className="text-left py-2 px-2 text-white/30 font-normal uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -297,6 +326,7 @@ export default function PortfolioPage() {
                   <td className="py-2 px-2 text-white/60 tabular-nums">{qty}</td>
                   <td className="py-2 px-2 text-white/60 tabular-nums">₹{price.toFixed(0)}</td>
                   <td className="py-2 px-2 text-white/60 tabular-nums">₹{(qty * price).toLocaleString("en-IN")}</td>
+                  <td className="py-2 px-2 text-white/30 tabular-nums">₹{Math.max(qty * price * 0.001, 20).toFixed(0)}</td>
                 </tr>
                 );
               })}

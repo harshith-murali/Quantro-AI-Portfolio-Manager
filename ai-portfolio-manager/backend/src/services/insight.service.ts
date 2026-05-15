@@ -191,7 +191,7 @@ export async function getRecommendations(userId: string) {
 
   const prompt = buildRecommendationPrompt(profile, holdings, walletBalance, NIFTY50_LIST);
 
-  const response = await processInsight(userId, 'STOCK_RECOMMENDATION', prompt, 'daily');
+  const response = await processInsight(userId, 'STOCK_RECOMMENDATION', prompt, `recs:bal${Math.floor(walletBalance)}`);
   
   try {
     const jsonMatch = response.match(/\[[\s\S]*\]/);

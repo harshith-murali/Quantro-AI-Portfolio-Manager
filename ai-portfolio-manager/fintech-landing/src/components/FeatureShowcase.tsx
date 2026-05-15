@@ -1,6 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useRef, useState, useEffect, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import FeatureShowcaseImage from './FeatureShowcaseImage';
 import Link from 'next/link';
 
@@ -46,22 +47,59 @@ const SHOWCASE_FEATURES = [
 const TOTAL = SHOWCASE_FEATURES.length;
 
 export function FeatureShowcase() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const setRef = useCallback((el: HTMLDivElement | null, i: number) => {
+    sectionRefs.current[i] = el;
+  }, []);
+
+  useEffect(() => {
+    const observers: IntersectionObserver[] = [];
+
+    sectionRefs.current.forEach((section, index) => {
+      if (!section) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setActiveIndex(index);
+            }
+          });
+        },
+        {
+          rootMargin: '-40% 0px -40% 0px',
+          threshold: 0,
+        }
+      );
+
+      observer.observe(section);
+      observers.push(observer);
+    });
+
+    return () => observers.forEach((obs) => obs.disconnect());
+  }, []);
+
   return (
-    <div className="flex flex-col gap-32 py-16 lg:gap-48 lg:py-32">
-      {SHOWCASE_FEATURES.map((feature, i) => {
-        return (
-          <div
-            key={feature.tag}
-            id={feature.tag.toLowerCase()}
-            className="flex flex-col items-center gap-16 lg:flex-row lg:items-center scroll-mt-32"
-          >
-            {/* Text Side */}
-            <div className="flex-1 w-full max-w-xl lg:pr-16 xl:pr-24">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+    <div className="relative">
+      {/* ── Desktop: sticky-scroll layout ── */}
+      <div className="hidden lg:flex relative">
+        {/* Left: scrollable text panels */}
+        <div className="w-[45%] xl:w-[42%]">
+          {SHOWCASE_FEATURES.map((feature, i) => (
+            <div
+              key={feature.tag}
+              ref={(el) => setRef(el, i)}
+              className="h-screen flex items-center"
+            >
+              {/* Pure CSS transition — no Framer re-renders */}
+              <div
+                className="pr-12 xl:pr-20 transition-all duration-700 ease-out"
+                style={{
+                  opacity: activeIndex === i ? 1 : 0.08,
+                  transform: activeIndex === i ? 'translateY(0)' : 'translateY(12px)',
+                }}
               >
                 <div className="flex items-center gap-4 mb-6">
                   <span className="h-px w-8 bg-gold/50" />
@@ -87,29 +125,111 @@ export function FeatureShowcase() {
                 >
                   {feature.linkText} ↗
                 </Link>
+
+                {/* Progress bar */}
+                <div className="flex gap-2 mt-10">
+                  {SHOWCASE_FEATURES.map((_, di) => (
+                    <div
+                      key={di}
+                      className="h-[3px] rounded-full transition-all duration-500"
+                      style={{
+                        width: di === i && activeIndex === i ? '32px' : '12px',
+                        backgroundColor:
+                          di === i && activeIndex === i
+                            ? 'rgba(207,171,103,0.8)'
+                            : 'rgba(255,255,255,0.06)',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Right: sticky image pinned to viewport center */}
+        <div className="w-[55%] xl:w-[58%]">
+          <div className="sticky top-0 h-screen flex items-center justify-end">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.45, ease: 'easeInOut' }}
+                className="w-full flex justify-end"
+              >
+                <FeatureShowcaseImage
+                  src={SHOWCASE_FEATURES[activeIndex].image}
+                  alt={SHOWCASE_FEATURES[activeIndex].title}
+                  priority={activeIndex === 0}
+                  className="w-full !max-w-[900px] xl:!max-w-[1100px]"
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Mobile: simple stacked layout ── */}
+      <div className="flex flex-col gap-24 py-16 lg:hidden">
+        {SHOWCASE_FEATURES.map((feature, i) => (
+          <div
+            key={feature.tag}
+            className="flex flex-col items-center gap-10 scroll-mt-32"
+          >
+            <div className="w-full max-w-xl px-4">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-80px' }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="flex items-center gap-4 mb-6">
+                  <span className="h-px w-8 bg-gold/50" />
+                  <span className="text-gold text-[11px] uppercase tracking-[0.35em]">
+                    {feature.tag}
+                  </span>
+                  <span className="text-white/10 text-[11px] tracking-widest ml-auto tabular-nums">
+                    {String(i + 1).padStart(2, '0')} / {String(TOTAL).padStart(2, '0')}
+                  </span>
+                </div>
+
+                <h3 className="font-serifDisplay text-3xl sm:text-4xl tracking-[-0.04em] text-text leading-[1.12] mb-5">
+                  {feature.title}
+                </h3>
+
+                <p className="text-muted text-[15px] leading-[1.85] mb-8">
+                  {feature.description}
+                </p>
+
+                <Link
+                  href={feature.link}
+                  className="inline-flex mt-2 items-center justify-center rounded-full border border-[rgba(207,171,103,0.3)] bg-[rgba(207,171,103,0.05)] px-6 py-3 text-[10px] uppercase tracking-[0.25em] text-gold transition-all hover:bg-[rgba(207,171,103,0.15)] hover:text-white hover:border-gold/50"
+                >
+                  {feature.linkText} ↗
+                </Link>
               </motion.div>
             </div>
 
-            {/* Image Side - allowing it to be huge */}
-            <div className="flex-[1.5] flex justify-end w-full relative">
+            <div className="w-full flex justify-center">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full flex justify-end"
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
               >
-                <FeatureShowcaseImage 
+                <FeatureShowcaseImage
                   src={feature.image}
                   alt={feature.title}
                   priority={i === 0}
-                  className="w-[110%] md:w-full !max-w-[900px] xl:!max-w-[1100px]"
+                  className="w-[92vw] max-w-[600px]"
                 />
               </motion.div>
             </div>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
