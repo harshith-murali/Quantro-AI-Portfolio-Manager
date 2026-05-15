@@ -33,14 +33,19 @@ export const tradeSchema = z.object({
 
 export const backtestSchema = z.object({
   symbol: z.string().min(1, "Select a symbol"),
-  strategy: z.enum(["RSI_MEAN_REVERSION","MACD_CROSSOVER","GOLDEN_CROSS","BB_BOUNCE","COMBINED"]),
+  strategy: z.enum(["SMA_CROSSOVER"]),
   dateFrom: z.string().min(1, "Select start date"),
   dateTo: z.string().min(1, "Select end date"),
   initialCapital: z.number().min(10000, "Minimum capital is ₹10,000"),
   positionSize: z.number().min(1).max(100),
+  shortWindow: z.number().min(1),
+  longWindow: z.number().min(1),
 }).refine((d) => new Date(d.dateTo) > new Date(d.dateFrom), {
   message: "End date must be after start date",
   path: ["dateTo"],
+}).refine((d) => d.shortWindow < d.longWindow, {
+  message: "Short window must be less than long window",
+  path: ["shortWindow"],
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

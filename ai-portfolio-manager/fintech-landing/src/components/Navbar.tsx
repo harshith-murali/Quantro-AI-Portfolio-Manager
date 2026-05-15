@@ -21,7 +21,7 @@ export function Navbar() {
   useEffect(() => {
     if (!accessToken || user?.name) return;
     api.auth.me(accessToken).then((d: any) => {
-      setUser((prev: any) => ({ ...prev, ...d.user }));
+      setUser({ ...user, ...d.user } as any);
     }).catch(() => {});
   }, [accessToken, user?.name]);
 
@@ -157,7 +157,15 @@ export function Navbar() {
                     {/* Sign out */}
                     <div className="border-t border-white/[0.06] py-1.5">
                       <button
-                        onClick={() => { logout(); setDropdownOpen(false); router.push("/"); }}
+                        onClick={async () => { 
+                          const state = useStore.getState();
+                          if (state.accessToken) {
+                            try { await api.auth.logout(state.accessToken, state.refreshToken ?? undefined); } catch {}
+                          }
+                          logout(); 
+                          setDropdownOpen(false); 
+                          router.push("/"); 
+                        }}
                         className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400/70 hover:text-red-400 hover:bg-red-400/[0.04] transition-colors"
                       >
                         <span className="text-base leading-none">→</span>

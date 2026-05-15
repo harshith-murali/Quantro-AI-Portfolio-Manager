@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setAccessToken, setUser } = useStore();
+  const { setUser } = useStore();
   const [serverError, setServerError] = useState("");
 
   const {
@@ -23,12 +23,12 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterInput) => {
     setServerError("");
     try {
-      const { user, accessToken } = await api.auth.register({
+      const { user, accessToken, refreshToken } = await api.auth.register({
         name: data.name,
         email: data.email,
         password: data.password,
       });
-      setAccessToken(accessToken);
+      useStore.getState().setTokens(accessToken, refreshToken);
       setUser(user);
       router.push("/profile");
     } catch (e: any) {

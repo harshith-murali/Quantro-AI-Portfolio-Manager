@@ -86,6 +86,13 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       timeScale: {
         borderColor: "rgba(255, 255, 255, 0.1)",
         timeVisible: true,
+        // ★ Prevent scrolling right of the last bar into empty future space
+        fixRightEdge: true,
+        // Small right padding so the last candle is not jammed at the edge
+        rightOffset: 5,
+        // Allow free left scroll into historical data
+        fixLeftEdge: false,
+        lockVisibleTimeRangeOnResize: true,
       },
       // ★ LEFT price scale
       leftPriceScale: {
@@ -196,6 +203,13 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         color: d.close > d.open ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)",
       }))
     );
+
+    // ★ Show ALL loaded candles on first render, then snap right edge to latest bar.
+    //   fitContent() zooms out so every bar in the dataset is visible;
+    //   scrollToRealTime() then anchors the view to the rightmost (latest) candle.
+    //   Users can freely zoom out and scroll left to explore full history.
+    chart.timeScale().fitContent();
+    chart.timeScale().scrollToRealTime();
 
     // Resize handler
     const handleResize = () => {

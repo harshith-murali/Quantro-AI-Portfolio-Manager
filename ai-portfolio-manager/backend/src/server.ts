@@ -28,7 +28,8 @@ function createApp(): express.Application {
     cors({
       origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, Postman, curl)
-        if (!origin || allowedOrigins.includes(origin)) {
+        // Also allow any localhost origin for robust local development across random ports
+        if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
           callback(null, true);
         } else {
           callback(new Error(`CORS policy: origin ${origin} is not allowed`));

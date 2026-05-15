@@ -58,7 +58,7 @@ export default function SignalDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<Tab>("Overview");
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | "">(1);
   const [tradeType, setTradeType] = useState<"BUY" | "SELL">("BUY");
   const [isTrading, setIsTrading] = useState(false);
   const [tradeSuccess, setTradeSuccess] = useState(false);
@@ -81,7 +81,7 @@ export default function SignalDetailPage() {
         // Fetch real OHLCV data from AWS S3 via backend
         setOhlcvLoading(true);
         try {
-          const realData = await api.signals.ohlcv(symbol, accessToken, 100);
+          const realData = await api.signals.ohlcv(symbol, accessToken, 1500);
           if (realData && realData.length > 0) {
             setAdvancedChartData(realData);
             setPriceHistory(
@@ -121,10 +121,14 @@ export default function SignalDetailPage() {
 
   const handleTrade = async () => {
     if (!accessToken || !signal) return;
+    if (!quantity || quantity < 1) {
+      setError("Please enter a valid quantity");
+      return;
+    }
     setIsTrading(true);
     setError("");
     try {
-      await api.portfolio.trade({ symbol, type: tradeType, quantity, price: signal.currentPrice }, accessToken);
+      await api.portfolio.trade({ symbol, type: tradeType, quantity: Number(quantity), price: signal.currentPrice }, accessToken);
       setTradeSuccess(true);
       setTimeout(() => { setTradeSuccess(false); router.push("/portfolio"); }, 2000);
     } catch (e: any) {
@@ -166,7 +170,7 @@ export default function SignalDetailPage() {
   const risk = RISK_LEVELS[signal.signal] ?? RISK_LEVELS.HOLD;
   const risks = KEY_RISKS[signal.signal] ?? KEY_RISKS.HOLD;
   const bullishIndicators = [signal.rsi < 30, signal.macd > 0, signal.suitabilityScore > 75, signal.changePercent > 0].filter(Boolean).length;
-  const totalValue = quantity * signal.currentPrice;
+  const totalValue = (typeof quantity === "number" ? quantity : 0) * signal.currentPrice;
 
   return (
     <div className="min-h-screen pt-40 pb-20 px-4 md:px-8 max-w-6xl mx-auto">
@@ -433,9 +437,22 @@ export default function SignalDetailPage() {
           <div className="space-y-4 mb-5">
             <div>
               <label className="field-label">Quantity</label>
-              <input type="number" value={quantity} min={1}
-                onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="auth-input" />
+              <input 
+                type="number" 
+                value={quantity} 
+                min={1}
+                placeholder="Qty"
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setQuantity("");
+                  } else {
+                    const parsed = parseInt(val);
+                    setQuantity(isNaN(parsed) ? "" : Math.max(0, parsed));
+                  }
+                }}
+                className="auth-input" 
+              />
             </div>
             <div className="flex justify-between text-sm border-t border-white/5 pt-4">
               <span className="text-white/40">Price per share</span>

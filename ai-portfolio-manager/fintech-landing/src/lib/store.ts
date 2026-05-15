@@ -23,10 +23,11 @@ export type { Holding } from "./types";
 
 interface AppState {
   accessToken: string | null;
+  refreshToken: string | null;
   user: UserProfile | null;
   portfolio: PortfolioSnapshot | null;
 
-  setAccessToken: (token: string | null) => void;
+  setTokens: (accessToken: string | null, refreshToken: string | null) => void;
   setUser: (user: UserProfile | null) => void;
   setProfile: (user: UserProfile | null) => void;
   setPortfolio: (portfolio: PortfolioSnapshot | null) => void;
@@ -37,18 +38,19 @@ export const useStore = create<AppState>()(
   persist(
     (set) => ({
       accessToken: null,
+      refreshToken: null,
       user: null,
       portfolio: null,
 
-      setAccessToken: (token) => set({ accessToken: token }),
+      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setUser: (user) => set({ user }),
       setProfile: (user) => set({ user }),
       setPortfolio: (portfolio) => set({ portfolio }),
-      logout: () => set({ accessToken: null, user: null, portfolio: null }),
+      logout: () => set({ accessToken: null, refreshToken: null, user: null, portfolio: null }),
     }),
     {
       name: "fintech-store",
-      partialize: (s) => ({ accessToken: s.accessToken }),
+      partialize: (s) => ({ accessToken: s.accessToken, refreshToken: s.refreshToken, user: s.user }),
     }
   )
 );

@@ -9,6 +9,7 @@ import ohlcvRouter from '@/routes/ohlcv.routes';
 import recommendationsRouter from '@/routes/recommendations.routes';
 import summaryRouter from '@/routes/summary.routes';
 import backtestRouter from '@/routes/backtest.routes';
+import marketRouter from '@/routes/market.routes';
 import { verifyAccessTokenMiddleware } from '@/middlewares/verifyAccessToken';
 import { verifyAdmin } from '@/middlewares/verifyAdmin';
 import { asyncHandler } from '@/middlewares/asyncHandler';
@@ -69,6 +70,7 @@ router.use('/ohlcv', ohlcvRouter);
 router.use('/recommendations', recommendationsRouter);
 router.use('/summary', summaryRouter);
 router.use('/backtest', backtestRouter);
+router.use('/market', marketRouter);
 
 // ─── Portfolio & Trading routes ────────────────────────────────────
 router.use('/', portfolioRouter);

@@ -15,9 +15,9 @@ export default function MarkdownView({ content }: { content: string }) {
   };
 
   const lines = content.split('\n');
-  const elements = [];
+  const elements: React.ReactNode[] = [];
   let inList = false;
-  let listItems = [];
+  let listItems: React.ReactNode[] = [];
 
   const flushList = () => {
     if (inList && listItems.length > 0) {

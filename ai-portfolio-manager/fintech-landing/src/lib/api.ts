@@ -44,19 +44,19 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
 export const api = {
   auth: {
     register: (body: { name: string; email: string; password: string }) =>
-      fetchAPI<{ user: any; accessToken: string }>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
+      fetchAPI<{ user: any; accessToken: string; refreshToken: string }>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
 
     login: (body: { email: string; password: string }) =>
-      fetchAPI<{ user: any; accessToken: string }>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+      fetchAPI<{ user: any; accessToken: string; refreshToken: string }>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
 
     me: (token: string) =>
       fetchAPI<{ user: any }>("/auth/me", {}, token),
 
-    refresh: () =>
-      fetchAPI<{ accessToken: string }>("/auth/refresh", { method: "POST" }),
+    refresh: (refreshToken?: string) =>
+      fetchAPI<{ accessToken: string; refreshToken: string }>("/auth/refresh", { method: "POST", body: JSON.stringify({ refreshToken }) }),
 
-    logout: (token: string) =>
-      fetchAPI<void>("/auth/logout", { method: "POST" }, token),
+    logout: (token: string, refreshToken?: string) =>
+      fetchAPI<void>("/auth/logout", { method: "POST", body: JSON.stringify({ refreshToken }) }, token),
   },
 
   // ─── Financial Profile ──────────────────────────────────────────
@@ -142,6 +142,10 @@ export const api = {
       fetchAPI<any>("/dashboard/holdings-table", {}, token),
   },
 
+  market: {
+    nifty: () => fetchAPI<any>("/market/nifty"),
+  },
+
   // ─── Wallet & Transactions ──────────────────────────────────────
   wallet: {
     balance: (token: string) =>
@@ -204,7 +208,7 @@ export const api = {
      * Symbols on the frontend use short names (RELIANCE); the backend
      * expects the NSE-suffixed key (RELIANCE_NS).
      */
-    ohlcv: async (symbol: string, _token: string, limit = 100): Promise<any[]> => {
+    ohlcv: async (symbol: string, _token: string, limit = 1500): Promise<any[]> => {
       // Map frontend symbol → S3 key suffix
       const SYMBOL_MAP: Record<string, string> = {
         RELIANCE: "RELIANCE_NS",
@@ -235,19 +239,27 @@ export const api = {
       }
     },
   },
-
-  // ─── Backtest (no backend route — returns mock result) ───────────
+  // ─── Backtest ───────────
   backtest: {
-    run: async (_body: any, _token: string): Promise<any> => ({
-      totalReturnPct: 15.4, annualisedReturnPct: 22.1, maxDrawdownPct: 5.2,
-      winRatePct: 62.5, totalTrades: 14, sharpeRatio: 1.82, buyAndHoldReturnPct: 8.3,
-      sampleTrades: [
-        { date: "Jan 08", action: "BUY",  price: 2450, qty: 10, pnl: null },
-        { date: "Jan 22", action: "SELL", price: 2620, qty: 10, pnl: "+₹1,700" },
-        { date: "Feb 03", action: "BUY",  price: 2580, qty: 8,  pnl: null },
-        { date: "Feb 18", action: "SELL", price: 2710, qty: 8,  pnl: "+₹1,040" },
-      ],
-    }),
+    run: async (body: any, token: string): Promise<any> => {
+      // Map frontend symbol -> backend S3 suffix
+      const SYMBOL_MAP: Record<string, string> = {
+        RELIANCE: "RELIANCE_NS",
+        INFY:     "INFY_NS",
+        TCS:      "TCS_NS",
+      };
+      const s3Symbol = SYMBOL_MAP[body.symbol.toUpperCase()] ?? `${body.symbol.toUpperCase()}_NS`;
+
+      const params = new URLSearchParams({
+        symbol: s3Symbol,
+        shortWindow: body.shortWindow?.toString() ?? "20",
+        longWindow: body.longWindow?.toString() ?? "50",
+        initialCapital: body.initialCapital?.toString() ?? "100000",
+        startDate: body.dateFrom,
+        endDate: body.dateTo,
+      });
+      return fetchAPI<any>(`/backtest?${params.toString()}`, { method: "GET" }, token);
+    },
     history: async (_token: string): Promise<any[]> => [],
     get: async (_id: string, _token: string): Promise<any> => null,
   },

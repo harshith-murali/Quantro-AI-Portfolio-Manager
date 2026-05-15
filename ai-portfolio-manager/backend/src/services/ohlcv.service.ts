@@ -112,3 +112,56 @@ export async function fetchAndParseSummary() {
     return { error: 'Internal Server Error while processing summary data', status: 500 };
   }
 }
+
+/**
+ * Returns the latest NIFTY 50 proxy (NIFTYBEES_NS) close price and 1-day % change.
+ * NIFTYBEES is a NIFTY 50 ETF that tracks the index closely.
+ * Falls back to the most recent available date if today's data is not yet published.
+ */
+export async function getNiftyLatest(): Promise<{
+  symbol: string;
+  date: string;
+  close: number;
+  prevClose: number;
+  changePct: number;
+  history: { date: string; close: number }[];
+}> {
+  const key = S3_MARKET_DATA_KEYS['NIFTYBEES_NS'];
+  if (!key) throw new Error('NIFTYBEES_NS S3 key not configured');
+
+  const csvContent = await getS3ObjectAsString(key);
+
+  const rawRecords = parse(csvContent, {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+  }) as any[];
+
+  // Sort ascending by date
+  const sorted = rawRecords
+    .map((r: any) => ({
+      date: r.Date as string,
+      close: Number(r.Close),
+    }))
+    .filter(r => !isNaN(r.close) && r.close > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (sorted.length < 2) throw new Error('Insufficient NIFTYBEES_NS data');
+
+  const latest  = sorted[sorted.length - 1];
+  const prev    = sorted[sorted.length - 2];
+  const changePct = ((latest.close - prev.close) / prev.close) * 100;
+
+  // Return last 90 days of history for the benchmark chart
+  const history = sorted.slice(-90);
+
+  return {
+    symbol: 'NIFTY 50 (via NIFTYBEES)',
+    date: latest.date,
+    close: Number(latest.close.toFixed(2)),
+    prevClose: Number(prev.close.toFixed(2)),
+    changePct: Number(changePct.toFixed(2)),
+    history,
+  };
+}
+

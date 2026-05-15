@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setAccessToken, setUser } = useStore();
+  const { setUser } = useStore();
   const [serverError, setServerError] = useState("");
 
   const {
@@ -23,8 +23,8 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginInput) => {
     setServerError("");
     try {
-      const { user, accessToken } = await api.auth.login(data);
-      setAccessToken(accessToken);
+      const { user, accessToken, refreshToken } = await api.auth.login(data);
+      useStore.getState().setTokens(accessToken, refreshToken);
       setUser(user);
       router.push("/dashboard");
     } catch (e: any) {
