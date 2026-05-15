@@ -4,8 +4,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { api, MOCK_SIGNALS } from '../api';
 import { useStore } from '../store';
 import { colors, card, typography } from '../theme';
+import { CandlestickChart } from '../components/CandlestickChart';
 
-type Tab = 'Overview' | 'Signals' | 'Rationale' | 'History';
+type Tab = 'Overview' | 'Candlestick' | 'Signals' | 'Rationale' | 'History';
 
 const RISK_COLOR: Record<string, string> = { BUY: colors.emerald, SELL: colors.red, HOLD: colors.muted };
 const KEY_RISKS: Record<string, string[]> = {
@@ -25,6 +26,12 @@ export function StockDetailScreen({ route, navigation }: any) {
   const [trading, setTrading] = useState(false);
   const [tradeSuccess, setTradeSuccess] = useState(false);
 
+  const [ohlcv, setOhlcv] = useState<any[]>([]);
+  const [ohlcvLoading, setOhlcvLoading] = useState(false);
+  const [showSMA, setShowSMA] = useState(false);
+  const [showBB, setShowBB] = useState(false);
+  const [showTrend, setShowTrend] = useState(false);
+
   useEffect(() => {
     api.signals.get(symbol, accessToken!)
       .then(s => { setSignal(s); setTradeType(s?.signal === 'SELL' ? 'SELL' : 'BUY'); })
@@ -34,13 +41,19 @@ export function StockDetailScreen({ route, navigation }: any) {
         setTradeType(mock.signal === 'SELL' ? 'SELL' : 'BUY');
       })
       .finally(() => setLoading(false));
+
+    setOhlcvLoading(true);
+    api.signals.ohlcv(symbol, accessToken!, 100)
+      .then(data => setOhlcv(data))
+      .catch(() => setOhlcv([]))
+      .finally(() => setOhlcvLoading(false));
   }, [symbol]);
 
   const handleTrade = async () => {
     if (!accessToken || !signal) return;
     setTrading(true);
     try {
-      await api.portfolio.trade({ symbol, type: tradeType, quantity: Number(qty), price: signal.currentPrice }, accessToken);
+      await api.portfolio.trade({ symbol, action: tradeType, quantity: Number(qty) }, accessToken);
       setTradeSuccess(true);
       setTimeout(() => { setTradeSuccess(false); navigation.navigate('Portfolio'); }, 1800);
     } catch (e: any) { Alert.alert('Trade failed', e.message); }
@@ -94,7 +107,7 @@ export function StockDetailScreen({ route, navigation }: any) {
 
         {/* Tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>
-          {(['Overview', 'Signals', 'Rationale', 'History'] as Tab[]).map(t => (
+          {(['Overview', 'Candlestick', 'Signals', 'Rationale', 'History'] as Tab[]).map(t => (
             <TouchableOpacity key={t} onPress={() => setTab(t)} style={[s.tab, tab === t && s.tabActive]}>
               <Text style={[s.tabText, tab === t && s.tabTextActive]}>{t}</Text>
             </TouchableOpacity>
@@ -127,6 +140,37 @@ export function StockDetailScreen({ route, navigation }: any) {
                 </View>
               ))}
             </View>
+          </View>
+        )}
+
+        {tab === 'Candlestick' && (
+          <View style={[card.glass, s.tabContent, { paddingHorizontal: 10, paddingVertical: 16 }]}>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+              <TouchableOpacity onPress={() => setShowSMA(!showSMA)} style={[s.toggleBtn, showSMA && s.toggleBtnActive]}>
+                <View style={[s.toggleDot, { backgroundColor: '#fbbf24', opacity: showSMA ? 1 : 0.3 }]} />
+                <Text style={[s.toggleText, showSMA && { color: '#fbbf24' }]}>SMA 20</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowBB(!showBB)} style={[s.toggleBtn, showBB && s.toggleBtnActive]}>
+                <View style={[s.toggleDot, { backgroundColor: '#38bdf8', opacity: showBB ? 1 : 0.3 }]} />
+                <Text style={[s.toggleText, showBB && { color: '#38bdf8' }]}>BB 20,2</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowTrend(!showTrend)} style={[s.toggleBtn, showTrend && s.toggleBtnActive]}>
+                <View style={[s.toggleDot, { backgroundColor: '#a78bfa', opacity: showTrend ? 1 : 0.3 }]} />
+                <Text style={[s.toggleText, showTrend && { color: '#a78bfa' }]}>Trend</Text>
+              </TouchableOpacity>
+            </View>
+
+            {ohlcvLoading ? (
+              <View style={{ height: 300, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator color={colors.gold} />
+              </View>
+            ) : (
+              <CandlestickChart 
+                data={ohlcv} 
+                height={300} 
+                indicators={{ sma: showSMA, bollingerBands: showBB, trend: showTrend }} 
+              />
+            )}
           </View>
         )}
 
@@ -254,6 +298,10 @@ const s = StyleSheet.create({
   tabText: { fontSize: 13, color: colors.muted, fontWeight: '500' },
   tabTextActive: { color: colors.gold, fontWeight: '700' },
   tabContent: { marginHorizontal: 16, marginBottom: 16 },
+  toggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  toggleBtnActive: { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.05)' },
+  toggleDot: { width: 6, height: 6, borderRadius: 3 },
+  toggleText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   metricCell: { width: '50%', paddingVertical: 12, paddingHorizontal: 4, alignItems: 'center', gap: 4 },
   metricVal: { fontSize: 20, fontWeight: '700' },
