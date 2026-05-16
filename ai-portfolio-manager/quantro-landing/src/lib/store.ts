@@ -58,7 +58,7 @@ export const useStore = create<AppState>()(
       logout: () => set({ accessToken: null, refreshToken: null, user: null, portfolio: null, watchlist: [] }),
     }),
     {
-      name: "fintech-store",
+      name: "quantro-store",
       partialize: (s) => ({
         accessToken: s.accessToken,
         refreshToken: s.refreshToken,

@@ -9,9 +9,9 @@ export function Footer() {
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(207,171,103,0.5)] bg-[rgba(207,171,103,0.1)] text-[10px] uppercase tracking-[0.3em] text-gold shadow-[0_0_15px_rgba(207,171,103,0.15)]">
-                F
+                Q
               </div>
-              <span className="text-sm uppercase tracking-[0.3em] text-white">Fintech</span>
+              <span className="text-sm uppercase tracking-[0.3em] text-white">Quantro</span>
             </div>
             <p className="mt-6 max-w-sm text-sm leading-7 text-muted">
               Defy market gravity. A premium AI-driven hedge fund fantasy translated into an elegant retail operating system.
@@ -58,7 +58,7 @@ export function Footer() {
         
         <div className="mt-20 flex flex-col items-center justify-between border-t border-white/5 pt-8 sm:flex-row">
           <p className="text-[11px] uppercase tracking-[0.1em] text-faint">
-            © {new Date().getFullYear()} FINTECH. ALL RIGHTS RESERVED.
+            © {new Date().getFullYear()} QUANTRO. ALL RIGHTS RESERVED.
           </p>
           <div className="mt-4 flex gap-6 sm:mt-0">
             {['Twitter', 'LinkedIn', 'GitHub'].map((social) => (

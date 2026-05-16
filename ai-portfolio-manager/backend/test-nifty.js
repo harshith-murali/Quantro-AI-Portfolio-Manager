@@ -9,7 +9,7 @@ async function testNiftyRestriction() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: 'Nifty Trader',
-      email: `nifty_${Date.now()}@fintech.dev`,
+      email: `nifty_${Date.now()}@quantro.dev`,
       password: 'Password123!',
     }),
   });

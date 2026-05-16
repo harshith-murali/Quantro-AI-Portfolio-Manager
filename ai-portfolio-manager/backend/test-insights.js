@@ -10,7 +10,7 @@ async function testInsightsFlow() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: 'AI Investor',
-      email: `ai_${Date.now()}@fintech.dev`,
+      email: `ai_${Date.now()}@quantro.dev`,
       password: 'Password123!',
     }),
   });

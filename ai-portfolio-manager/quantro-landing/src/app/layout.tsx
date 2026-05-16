@@ -16,7 +16,7 @@ const body = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'fintech — defy market gravity',
+  title: 'quantro — defy market gravity',
   description: 'Premium AI-powered stock portfolio landing page.'
 };
 

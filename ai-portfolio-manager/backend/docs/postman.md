@@ -1,4 +1,4 @@
-# FinTech Auth API — Postman Testing Guide
+# Quantro Auth API — Postman Testing Guide
 
 Base URL: `http://localhost:8080/api`
 
@@ -11,8 +11,8 @@ Base URL: `http://localhost:8080/api`
 ```json
 {
   "name": "Alice Finance",
-  "email": "alice@fintech.dev",
-  "password": "FinTech@Secure123!"
+  "email": "alice@quantro.dev",
+  "password": "Quantro@Secure123!"
 }
 ```
 
@@ -25,7 +25,7 @@ Base URL: `http://localhost:8080/api`
     "user": {
       "id": "clx...",
       "name": "Alice Finance",
-      "email": "alice@fintech.dev",
+      "email": "alice@quantro.dev",
       "role": "USER",
       "createdAt": "2024-01-01T00:00:00.000Z"
     },
@@ -43,8 +43,8 @@ Base URL: `http://localhost:8080/api`
 
 ```json
 {
-  "email": "alice@fintech.dev",
-  "password": "FinTech@Secure123!"
+  "email": "alice@quantro.dev",
+  "password": "Quantro@Secure123!"
 }
 ```
 
@@ -147,7 +147,7 @@ Headers:
 Authorization: Bearer <adminAccessToken>
 ```
 
-> Must be logged in as a user with `role: ADMIN`. Seed users include `admin@fintech.dev`.
+> Must be logged in as a user with `role: ADMIN`. Seed users include `admin@quantro.dev`.
 
 ---
 

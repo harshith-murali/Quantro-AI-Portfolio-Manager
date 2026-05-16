@@ -15,7 +15,7 @@ if (!fs.existsSync(logsDir)) {
 
 const devConsoleFormat = combine(
   colorize({ all: true }),
-  label({ label: 'FinTech' }),
+  label({ label: 'Quantro' }),
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   errors({ stack: true }),
   printf(({ level, message, timestamp, label: lbl, stack, ...meta }) => {

@@ -10,7 +10,7 @@ async function testTransactionFlow() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: 'Ledger Master',
-      email: `ledger_${Date.now()}@fintech.dev`,
+      email: `ledger_${Date.now()}@quantro.dev`,
       password: 'Password123!',
     }),
   });

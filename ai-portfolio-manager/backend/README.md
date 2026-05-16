@@ -1,6 +1,6 @@
-# FinTech Auth Backend
+# Quantro Auth Backend
 
-Production-grade JWT authentication backend for the FinTech AI-powered stock portfolio manager.
+Production-grade JWT authentication backend for the Quantro AI-powered stock portfolio manager.
 
 ## Tech Stack
 
@@ -95,8 +95,8 @@ npm run db:seed
 ```
 
 Creates:
-- `admin@fintech.dev` / `FinTech@Secure123!` (ADMIN)
-- `user@fintech.dev` / `FinTech@Secure123!` (USER)
+- `admin@quantro.dev` / `Quantro@Secure123!` (ADMIN)
+- `user@quantro.dev` / `Quantro@Secure123!` (USER)
 
 ### 6. Start development server
 

@@ -1,5 +1,5 @@
 /**
- * Core type definitions for the FinTech auth system.
+ * Core type definitions for the Quantro auth system.
  */
 
 import { Role } from '@prisma/client';

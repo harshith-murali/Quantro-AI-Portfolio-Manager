@@ -27,7 +27,7 @@ router.use('/financial-profile', profileRouter);
 // ─── Health check ─────────────────────────────────────────────────
 router.get('/health', (req: Request, res: Response) => {
   res.status(200).json(
-    successResponse('FinTech API is running', {
+    successResponse('Quantro API is running', {
       status: 'ok',
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version ?? '1.0.0',

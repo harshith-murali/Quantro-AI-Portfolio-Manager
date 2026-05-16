@@ -27,9 +27,9 @@ export function LoadingSplash() {
         className="flex flex-col items-center gap-4"
       >
         <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(207,171,103,0.65)] bg-[rgba(207,171,103,0.08)] text-[12px] uppercase tracking-[0.35em] text-gold shadow-[0_0_40px_rgba(207,171,103,0.35)]">
-          F
+          Q
         </div>
-        <div className="text-xs uppercase tracking-[0.35em] text-muted">fintech</div>
+        <div className="text-xs uppercase tracking-[0.35em] text-muted">quantro</div>
         <motion.div
           className="h-px w-40 bg-[linear-gradient(90deg,transparent,rgba(207,171,103,0.85),transparent)]"
           initial={{ scaleX: 0 }}

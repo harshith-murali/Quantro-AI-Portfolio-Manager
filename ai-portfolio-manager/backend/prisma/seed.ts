@@ -6,16 +6,16 @@ const prisma = new PrismaClient();
 async function main(): Promise<void> {
   console.log('🌱 Seeding database with realistic data...');
 
-  const password = 'FinTech@Secure123!';
+  const password = 'Quantro@Secure123!';
   const hashedPassword = await bcrypt.hash(password, 12);
 
   // 1. Create User
   const user = await prisma.user.upsert({
-    where: { email: 'user@fintech.dev' },
+    where: { email: 'user@quantro.dev' },
     update: {},
     create: {
-      name: 'FinTech User',
-      email: 'user@fintech.dev',
+      name: 'Quantro User',
+      email: 'user@quantro.dev',
       hashedPassword,
       role: Role.USER,
     },
@@ -93,7 +93,7 @@ async function main(): Promise<void> {
   await prisma.portfolioHistory.createMany({ data: historyData });
 
   console.log('✅ Seeded user, profile, holdings, and 30 days of history.');
-  console.log(`   User: user@fintech.dev`);
+  console.log(`   User: user@quantro.dev`);
   console.log(`   Password: ${password}`);
 }
 

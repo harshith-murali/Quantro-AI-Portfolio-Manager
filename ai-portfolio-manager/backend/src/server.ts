@@ -87,7 +87,7 @@ async function bootstrap(): Promise<void> {
   }
 
   const server = app.listen(env.PORT, () => {
-    logger.info(`🚀  FinTech API running`, {
+    logger.info(`🚀  Quantro API running`, {
       port: env.PORT,
       environment: env.NODE_ENV,
       url: `http://localhost:${env.PORT}/api`,

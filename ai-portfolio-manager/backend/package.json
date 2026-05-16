@@ -1,7 +1,7 @@
 {
-  "name": "fintech-auth-backend",
+  "name": "quantro-auth-backend",
   "version": "1.0.0",
-  "description": "Production-grade JWT authentication backend for FinTech AI Portfolio Manager",
+  "description": "Production-grade JWT authentication backend for Quantro AI Portfolio Manager",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon",

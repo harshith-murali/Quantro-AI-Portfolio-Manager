@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/Recharts-FF6384?style=for-the-badge" />
 </p>
 
-# AI Portfolio Manager
+# Quantro — AI Portfolio Manager
 
 > An intelligent, full-stack stock portfolio platform that helps beginner investors understand how much they can safely invest, explore AI-driven stock recommendations, simulate trades, run backtests, and monitor their portfolio — all in a stunning, premium dark-mode interface.
 
@@ -95,7 +95,7 @@ ai-portfolio-manager/
 │   ├── prisma/
 │   │   └── schema.prisma        # Database schema
 │   └── .env                     # DB connection & JWT secrets
-├── fintech-landing/             # Next.js frontend
+├── quantro-landing/             # Next.js frontend
 │   ├── src/
 │   │   ├── app/                 # Pages (App Router)
 │   │   │   ├── dashboard/       # Main dashboard
@@ -151,7 +151,7 @@ JWT_REFRESH_SECRET="your-refresh-secret"
 PORT=3001
 ```
 
-**Frontend** (`fintech-landing/.env`):
+**Frontend** (`quantro-landing/.env`):
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ```
@@ -166,7 +166,7 @@ npx prisma migrate dev
 npm run dev
 
 # Frontend (new terminal)
-cd fintech-landing
+cd quantro-landing
 npm install
 npm run dev
 ```
@@ -199,7 +199,7 @@ Navigate to **http://localhost:3000** and register a new account.
 ## Design Principles
 
 - **Frontend-first**: Built to look & feel like a real product, not a school project
-- **Dark mode only**: High-contrast, premium fintech aesthetic with gold accents
+- **Dark mode only**: High-contrast, premium quantro aesthetic with gold accents
 - **Glass morphism**: Frosted glass panels with subtle borders and backdrop blur
 - **Micro-animations**: Framer Motion for smooth page transitions and interactive feedback
 - **Data-dense**: Professional-grade charts and tables that show real metrics

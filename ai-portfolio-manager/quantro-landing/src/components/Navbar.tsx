@@ -98,10 +98,10 @@ export function Navbar() {
         <div className="glass-panel flex items-center justify-between rounded-2xl px-5 py-3">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative flex h-8 w-8 items-center justify-center bg-gold/10 border border-gold/30 rounded-lg overflow-hidden group-hover:border-gold/60 transition-all duration-300">
-              <span className="text-gold text-sm font-black tracking-tight">F</span>
+              <span className="text-gold text-sm font-black tracking-tight">Q</span>
               <div className="absolute inset-0 bg-gradient-to-br from-gold/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
-            <span className="text-sm font-bold uppercase tracking-[0.3em] text-text/90 group-hover:text-text transition-colors">fintech</span>
+            <span className="text-sm font-bold uppercase tracking-[0.3em] text-text/90 group-hover:text-text transition-colors">quantro</span>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm text-muted md:flex">
