@@ -63,7 +63,7 @@ export function HeroVisual() {
 
             <div className="mt-6">
               <div className="text-[11px] uppercase tracking-[0.28em] text-faint">Net worth</div>
-              <div className="mt-2 font-serifDisplay text-5xl tracking-[-0.05em] text-text">$248k</div>
+              <div className="mt-2 font-serifDisplay text-5xl tracking-[-0.05em] text-text">₹2.48Cr</div>
               <div className="mt-2 text-sm text-gold">+12.84% this cycle</div>
             </div>
 

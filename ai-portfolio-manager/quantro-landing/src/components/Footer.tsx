@@ -21,21 +21,19 @@ export function Footer() {
           <div>
             <div className="mb-6 text-[11px] uppercase tracking-[0.2em] text-gold">Platform</div>
             <ul className="space-y-4 text-sm text-muted">
-              <li><a href="#experience" className="transition hover:text-white">Experience</a></li>
-              <li><a href="#watchlist" className="transition hover:text-white">Watchlist</a></li>
-              <li><a href="#heatmap" className="transition hover:text-white">Heatmap</a></li>
-              <li><a href="#compare" className="transition hover:text-white">Compare</a></li>
-              <li><a href="#journal" className="transition hover:text-white">Journal</a></li>
-              <li><a href="#intelligence" className="transition hover:text-white">Intelligence</a></li>
+              <li><Link href="/portfolio" className="transition hover:text-white">Portfolio</Link></li>
+              <li><Link href="/signals" className="transition hover:text-white">Signals</Link></li>
+              <li><Link href="/watchlist" className="transition hover:text-white">Watchlist</Link></li>
+              <li><Link href="/backtest" className="transition hover:text-white">Backtest</Link></li>
             </ul>
           </div>
 
           <div>
             <div className="mb-6 text-[11px] uppercase tracking-[0.2em] text-gold">Legal</div>
             <ul className="space-y-4 text-sm text-muted">
-              <li><a href="#" className="transition hover:text-white">Privacy Policy</a></li>
-              <li><a href="#" className="transition hover:text-white">Terms of Service</a></li>
-              <li><a href="#" className="transition hover:text-white">Disclosures</a></li>
+              <li><Link href="/legal/privacy" className="transition hover:text-white">Privacy Policy</Link></li>
+              <li><Link href="/legal/terms" className="transition hover:text-white">Terms of Service</Link></li>
+              <li><Link href="/legal/disclosures" className="transition hover:text-white">Disclosures</Link></li>
             </ul>
           </div>
 
@@ -43,13 +41,13 @@ export function Footer() {
             <div className="mb-6 text-[11px] uppercase tracking-[0.2em] text-gold">Contact</div>
             <ul className="space-y-4 text-sm text-muted">
               <li>
-                <a href="mailto:hanishsadhi@gmail.com" className="transition hover:text-white break-all">
-                  hanishsadhi@gmail.com
+                <a href="mailto:mharshith200@gmail.com" className="transition hover:text-white break-all">
+                  mharshith200@gmail.com
                 </a>
               </li>
               <li>
-                <a href="tel:+919019697197" className="transition hover:text-white">
-                  +91 90196 97197
+                <a href="tel:+917204621805" className="transition hover:text-white">
+                  +91 72046 21805
                 </a>
               </li>
             </ul>
@@ -61,11 +59,12 @@ export function Footer() {
             © {new Date().getFullYear()} QUANTRO. ALL RIGHTS RESERVED.
           </p>
           <div className="mt-4 flex gap-6 sm:mt-0">
-            {['Twitter', 'LinkedIn', 'GitHub'].map((social) => (
-              <a key={social} href="#" className="text-[11px] uppercase tracking-[0.1em] text-faint transition hover:text-gold">
-                {social}
-              </a>
-            ))}
+            <a href="https://github.com/harshith-murali/ai-portfolio-manager.git" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[11px] uppercase tracking-[0.1em] text-faint transition hover:text-gold">
+              <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+              </svg>
+              GitHub
+            </a>
           </div>
         </div>
       </div>

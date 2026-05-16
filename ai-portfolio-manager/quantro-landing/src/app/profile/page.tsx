@@ -48,7 +48,7 @@ export default function ProfilePage() {
   const [saving,     setSaving]     = useState(false);
   const [saveMsg,    setSaveMsg]    = useState("");
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<ProfileInput>({
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
     defaultValues: { riskAppetite: "MODERATE", investmentGoal: "MEDIUM_TERM" },
   });
@@ -57,6 +57,21 @@ export default function ProfilePage() {
   const fixed  = watch("fixedExpenses") || 0;
   const disc   = watch("discretionaryExpenses") || 0;
   const surplus = Math.max(0, income - fixed - disc);
+
+  // Repopulate form when user profile data is loaded
+  useEffect(() => {
+    const profile = (user as any)?.financialProfile || user;
+    if (profile && profile.monthlyIncome) {
+      reset({
+        monthlyIncome: Number(profile.monthlyIncome),
+        fixedExpenses: Number(profile.monthlyExpenses),
+        discretionaryExpenses: 0,
+        totalSavings: Number(profile.currentSavings),
+        investmentGoal: (profile.financialGoal as any) || "MEDIUM_TERM",
+        riskAppetite: profile.riskAppetite === "LOW" ? "CONSERVATIVE" : profile.riskAppetite === "HIGH" ? "AGGRESSIVE" : "MODERATE",
+      });
+    }
+  }, [user, reset]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -275,7 +290,7 @@ export default function ProfilePage() {
       <AnimatePresence>
         {editOpen && (
           <motion.div
-            className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={e => { if (e.target === e.currentTarget) setEditOpen(false); }}
           >

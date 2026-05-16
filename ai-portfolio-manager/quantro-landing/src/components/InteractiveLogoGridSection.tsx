@@ -1,22 +1,49 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import styles from './InteractiveLogoGridSection.module.css';
-import { LOGOS } from './logoData';
+import { TICKERS, getIconUrl } from './logoData';
 
 export interface InteractiveLogoGridSectionProps {
   children?: React.ReactNode;
   cellCount?: number;
 }
 
+function StockIcon({ symbol, slug }: { symbol: string, slug: string }) {
+  const [error, setError] = useState(false);
+  const iconUrl = getIconUrl(slug);
+
+  return (
+    <div className="flex flex-col items-center gap-2 group cursor-default">
+      <div className="relative w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:border-gold/50 group-hover:bg-gold/10 group-hover:scale-110">
+        {!error ? (
+          <img 
+            src={iconUrl} 
+            alt={symbol} 
+            className="w-6 h-6 object-contain opacity-20 group-hover:opacity-100 transition-opacity duration-500 filter grayscale group-hover:grayscale-0"
+            onError={() => setError(true)}
+          />
+        ) : (
+          <span className="text-[10px] font-bold text-white/20 group-hover:text-gold transition-colors">
+            {symbol.slice(0, 2)}
+          </span>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-br from-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+      <span className="text-[8px] font-mono font-bold tracking-tighter text-white/10 uppercase group-hover:text-gold/60 transition-colors duration-500">
+        {symbol}
+      </span>
+    </div>
+  );
+}
+
 export function InteractiveLogoGridSection({ 
   children,
-  cellCount = 240
+  cellCount = 200
 }: InteractiveLogoGridSectionProps) {
   
-  // Use a coprime step so every cell gets a different logo in a non-repeating pattern
   const cells = useMemo(() => {
-    const step = 11; // coprime with most array lengths for even distribution
+    const step = 7; 
     return Array.from({ length: cellCount }).map((_, i) => ({
-      src: LOGOS[(i * step) % LOGOS.length],
+      ...TICKERS[(i * step) % TICKERS.length],
     }));
   }, [cellCount]);
 
@@ -26,13 +53,7 @@ export function InteractiveLogoGridSection({
       <div className={styles.grid}>
         {cells.map((cell, i) => (
           <div key={i} className={styles.cell}>
-            <img 
-              src={cell.src}
-              alt="company logo"
-              className={styles.logo}
-              loading="lazy"
-              decoding="async"
-            />
+            <StockIcon symbol={cell.symbol} slug={cell.slug} />
           </div>
         ))}
       </div>

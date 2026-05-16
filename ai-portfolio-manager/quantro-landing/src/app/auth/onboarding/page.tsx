@@ -11,6 +11,13 @@ import {
   ChevronLeft,
   CheckCircle2,
   Sparkles,
+  Scale,
+  Rocket,
+  Palmtree,
+  Zap,
+  Coins,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useStore } from "@/lib/store";
@@ -28,37 +35,37 @@ interface FormData {
 }
 
 // ─── Constants ────────────────────────────────────────────────────
-const RISK_OPTIONS: { value: RiskLevel; label: string; desc: string; color: string; icon: string }[] = [
+const RISK_OPTIONS: { value: RiskLevel; label: string; desc: string; color: string; Icon: any }[] = [
   {
     value: "LOW",
     label: "Conservative",
     desc: "Capital preservation. Low volatility, steady returns.",
     color: "border-emerald-500/40 bg-emerald-500/5 peer-checked:border-emerald-400 peer-checked:bg-emerald-400/10",
-    icon: "🛡️",
+    Icon: ShieldCheck,
   },
   {
     value: "MEDIUM",
     label: "Moderate",
     desc: "Balanced growth with manageable risk.",
     color: "border-gold/30 bg-gold/5 peer-checked:border-gold peer-checked:bg-gold/10",
-    icon: "⚖️",
+    Icon: Scale,
   },
   {
     value: "HIGH",
     label: "Aggressive",
     desc: "High growth potential. Comfortable with big swings.",
     color: "border-orange-500/30 bg-orange-500/5 peer-checked:border-orange-400 peer-checked:bg-orange-400/10",
-    icon: "🚀",
+    Icon: Rocket,
   },
 ];
 
-const GOAL_OPTIONS: { value: string; label: string; desc: string; emoji: string }[] = [
-  { value: "Wealth accumulation",      label: "Wealth Accumulation",    desc: "Grow capital over the long term",         emoji: "📈" },
-  { value: "Retirement planning",      label: "Retirement Planning",    desc: "Build a nest egg for the future",         emoji: "🏖️" },
-  { value: "Short-term gains",         label: "Short-Term Gains",       desc: "Quick returns, < 1 year horizon",         emoji: "⚡" },
-  { value: "Income generation",        label: "Income Generation",      desc: "Dividends & regular cash flow",           emoji: "💰" },
-  { value: "Portfolio diversification",label: "Diversification",        desc: "Spread risk across asset classes",        emoji: "🌐" },
-  { value: "Capital preservation",     label: "Capital Preservation",   desc: "Protect existing wealth from erosion",    emoji: "🔒" },
+const GOAL_OPTIONS: { value: string; label: string; desc: string; Icon: any }[] = [
+  { value: "Wealth accumulation",      label: "Wealth Accumulation",    desc: "Grow capital over the long term",         Icon: TrendingUp },
+  { value: "Retirement planning",      label: "Retirement Planning",    desc: "Build a nest egg for the future",         Icon: Palmtree },
+  { value: "Short-term gains",         label: "Short-Term Gains",       desc: "Quick returns, < 1 year horizon",         Icon: Zap },
+  { value: "Income generation",        label: "Income Generation",      desc: "Dividends & regular cash flow",           Icon: Coins },
+  { value: "Portfolio diversification",label: "Diversification",        desc: "Spread risk across asset classes",        Icon: Globe },
+  { value: "Capital preservation",     label: "Capital Preservation",   desc: "Protect existing wealth from erosion",    Icon: Lock },
 ];
 
 // ─── Step configs ─────────────────────────────────────────────────
@@ -420,7 +427,15 @@ export default function OnboardingPage() {
                             :                         "border-orange-400/50 bg-orange-400/8"
                             : "border-white/8 bg-white/[0.02] hover:border-white/15"}
                         `}>
-                          <span className="text-2xl">{opt.icon}</span>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                            form.risk_appetite === opt.value
+                              ? opt.value === "LOW"    ? "bg-emerald-400/20 text-emerald-400"
+                              : opt.value === "MEDIUM" ? "bg-gold/20 text-gold"
+                              :                         "bg-orange-400/20 text-orange-400"
+                              : "bg-white/5 text-white/30"
+                          }`}>
+                            <opt.Icon size={20} />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-semibold text-sm">{opt.label}</p>
                             <p className="text-white/40 text-xs mt-0.5">{opt.desc}</p>
@@ -466,16 +481,20 @@ export default function OnboardingPage() {
                           onChange={() => setForm((f) => ({ ...f, financial_goal: opt.value }))}
                           className="sr-only"
                         />
-                        <div className={`p-3.5 rounded-2xl border transition-all duration-200 ${
+                        <div className={`p-4 rounded-2xl border transition-all duration-200 ${
                           form.financial_goal === opt.value
                             ? "border-gold/50 bg-gold/8"
                             : "border-white/8 bg-white/[0.02] hover:border-white/15"
                         }`}>
-                          <span className="text-xl block mb-1.5">{opt.emoji}</span>
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${
+                            form.financial_goal === opt.value ? "bg-gold/20 text-gold" : "bg-white/5 text-white/30"
+                          }`}>
+                            <opt.Icon size={18} />
+                          </div>
                           <p className={`text-xs font-semibold leading-tight transition-colors ${
                             form.financial_goal === opt.value ? "text-gold" : "text-white/70"
                           }`}>{opt.label}</p>
-                          <p className="text-white/30 text-[10px] mt-0.5 leading-tight">{opt.desc}</p>
+                          <p className="text-white/30 text-[10px] mt-1 leading-tight">{opt.desc}</p>
                         </div>
                       </label>
                     ))}

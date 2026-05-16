@@ -1,12 +1,17 @@
+"use client";
 import { HeroVisual } from '@/components/HeroVisual';
 import { Reveal } from '@/components/Reveal';
 import { FeatureShowcase } from '@/components/FeatureShowcase';
 import { InteractiveLogoGridSection } from '@/components/InteractiveLogoGridSection';
 import { WaitlistSection } from '@/components/WaitlistSection';
 import { Footer } from '@/components/Footer';
-import { Play, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { useAuth } from '@/lib/useAuth';
+import Link from 'next/link';
 
 export default function Page() {
+  const accessToken = useAuth();
+
   return (
     <>
       <main>
@@ -34,18 +39,29 @@ export default function Page() {
                 A luxury AI investing interface engineered for conviction, composure, and asymmetrical advantage.
               </p>
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-                <a
-                  href="#experience"
-                  className="inline-flex items-center justify-center rounded-full border border-[rgba(207,171,103,0.35)] bg-[rgba(207,171,103,0.10)] px-7 py-4 text-sm uppercase tracking-[0.24em] text-text transition hover:-translate-y-0.5 hover:shadow-[0_0_40px_rgba(207,171,103,0.12)]"
-                >
-                  See the experience
-                </a>
-                <a
-                  href="/auth/login"
-                  className="inline-flex items-center justify-center rounded-full border border-white/10 px-7 py-4 text-sm uppercase tracking-[0.24em] text-muted transition hover:-translate-y-0.5 hover:border-gold/20 hover:text-text"
-                >
-                  Access System <ArrowRight className="ml-2 w-4 h-4" />
-                </a>
+                {accessToken ? (
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center justify-center rounded-full border border-[rgba(207,171,103,0.35)] bg-[rgba(207,171,103,0.10)] px-7 py-4 text-sm uppercase tracking-[0.24em] text-text transition hover:-translate-y-0.5 hover:shadow-[0_0_40px_rgba(207,171,103,0.12)]"
+                  >
+                    Open App <ArrowRight className="ml-2 w-4 h-4" />
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/register"
+                      className="inline-flex items-center justify-center rounded-full border border-[rgba(207,171,103,0.35)] bg-[rgba(207,171,103,0.10)] px-7 py-4 text-sm uppercase tracking-[0.24em] text-text transition hover:-translate-y-0.5 hover:shadow-[0_0_40px_rgba(207,171,103,0.12)]"
+                    >
+                      Get Started
+                    </Link>
+                    <Link
+                      href="/auth/login"
+                      className="inline-flex items-center justify-center rounded-full border border-white/10 px-7 py-4 text-sm uppercase tracking-[0.24em] text-muted transition hover:-translate-y-0.5 hover:border-gold/20 hover:text-text"
+                    >
+                      Sign In <ArrowRight className="ml-2 w-4 h-4" />
+                    </Link>
+                  </>
+                )}
               </div>
             </Reveal>
 
@@ -146,11 +162,11 @@ export default function Page() {
         <InteractiveLogoGridSection>
           <Reveal>
             <div className="flex flex-col items-center">
-              <h2 className="font-serifDisplay text-4xl sm:text-5xl text-text mb-6">
-                Integrated with global markets
+              <h2 className="font-serifDisplay text-4xl sm:text-5xl text-text mb-6 text-center">
+                Integrated with Indian markets
               </h2>
-              <p className="text-muted max-w-lg mx-auto mb-8 text-lg">
-                Seamlessly connect your existing brokerage accounts and monitor intelligence across thousands of global equities in real-time.
+              <p className="text-muted max-w-lg mx-auto mb-8 text-lg text-center">
+                Seamlessly monitor intelligence and real-time signals across the Nifty 50.
               </p>
               <button className="px-6 py-3 bg-[rgba(207,171,103,0.1)] border border-gold/30 text-gold rounded-full hover:bg-[rgba(207,171,103,0.2)] transition-colors">
                 View Supported Integrations <ArrowRight className="inline-block ml-2 w-4 h-4" />
@@ -161,7 +177,7 @@ export default function Page() {
 
 
         {/* ============ WAITLIST ============ */}
-        <WaitlistSection />
+        {!accessToken && <WaitlistSection />}
 
       </main>
       <Footer />

@@ -21,7 +21,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         <HeroAmbient />
       </div>
 
-      <div className="relative z-0">
+      <div className="relative">
         {children}
       </div>
     </>

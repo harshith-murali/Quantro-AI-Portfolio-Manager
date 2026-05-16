@@ -259,19 +259,17 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/#experience"   className="transition hover:text-white">Experience</Link>
-                <Link href="/#watchlist"    className="transition hover:text-white">Watchlist</Link>
-                <Link href="/#heatmap"      className="transition hover:text-white">Heatmap</Link>
-                <Link href="/#compare"      className="transition hover:text-white">Compare</Link>
-                <Link href="/#journal"      className="transition hover:text-white">Journal</Link>
-                <Link href="/#intelligence" className="transition hover:text-white">Intelligence</Link>
+                <Link href="/portfolio" className="transition hover:text-white">Portfolio</Link>
+                <Link href="/signals"   className="transition hover:text-white">Signals</Link>
+                <Link href="/watchlist" className="transition hover:text-white">Watchlist</Link>
+                <Link href="/backtest"  className="transition hover:text-white">Backtest</Link>
               </>
             )}
           </nav>
 
           <div className="flex items-center gap-3">
-            {pathname !== '/' ? (
-              /* ── Avatar dropdown ── */
+            {accessToken ? (
+              /* ── Avatar dropdown (Shared between landing & app if logged in) ── */
               <div className="relative" ref={dropRef}>
                 <button
                   onClick={() => setDropdownOpen(p => !p)}
@@ -293,18 +291,15 @@ export function Navbar() {
                 {/* Dropdown panel */}
                 {dropdownOpen && (
                   <div className="absolute right-0 top-full mt-3 w-52 bg-[#0c0c0c]/95 backdrop-blur-xl rounded-2xl py-2 shadow-2xl border border-white/10 animate-in fade-in slide-in-from-top-1 duration-150 z-50">
-                    {/* User info header */}
                     <div className="px-4 py-3 border-b border-white/[0.06]">
                       <p className="text-white text-sm font-semibold truncate">{user?.name ?? "Investor"}</p>
                       <p className="text-white/35 text-xs truncate mt-0.5">{user?.email ?? ""}</p>
                     </div>
-                    {/* Menu items */}
                     <div className="py-1.5">
                       {[
-                        { href: "/ai",        label: "AI Advisor",    icon: <Bot size={16} /> },
+                        { href: "/dashboard", label: "Dashboard",     icon: <BarChart3 size={16} /> },
                         { href: "/profile",   label: "Your Profile",   icon: <UserIcon size={16} /> },
                         { href: "/wallet",    label: "Wallet",          icon: <Wallet size={16} /> },
-                        { href: "/portfolio", label: "Portfolio",       icon: <BarChart3 size={16} /> },
                       ].map(({ href, label, icon }) => (
                         <Link
                           key={href}
@@ -317,7 +312,6 @@ export function Navbar() {
                         </Link>
                       ))}
                     </div>
-                    {/* Sign out */}
                     <div className="border-t border-white/[0.06] py-1.5">
                       <button
                         onClick={async () => { 
@@ -338,14 +332,27 @@ export function Navbar() {
                   </div>
                 )}
               </div>
-            ) : (
+            ) : null}
+
+            {/* Main CTA */}
+            {pathname === '/' ? (
               <Link
-                href="/auth/login"
+                href={accessToken ? "/dashboard" : "/auth/register"}
                 className="group relative flex items-center gap-2 border border-gold/30 rounded-xl px-6 py-2.5 text-sm font-semibold text-gold bg-gold/[0.02] hover:border-gold/60 hover:bg-gold/[0.05] transition-all duration-300"
               >
-                Enter
+                {accessToken ? "Open App" : "Get Started"}
                 <ArrowRight size={14} className="ml-1 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
+            ) : (
+              !accessToken && (
+                <Link
+                  href="/auth/login"
+                  className="group relative flex items-center gap-2 border border-gold/30 rounded-xl px-6 py-2.5 text-sm font-semibold text-gold bg-gold/[0.02] hover:border-gold/60 hover:bg-gold/[0.05] transition-all duration-300"
+                >
+                  Enter
+                  <ArrowRight size={14} className="ml-1 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              )
             )}
           </div>
         </div>
