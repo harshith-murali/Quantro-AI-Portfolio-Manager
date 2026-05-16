@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import FeatureShowcaseImage from './FeatureShowcaseImage';
 import Link from 'next/link';
+import { ArrowUpRight } from 'lucide-react';
 
 const SHOWCASE_FEATURES = [
   {
@@ -123,7 +124,7 @@ export function FeatureShowcase() {
                   href={feature.link}
                   className="inline-flex mt-2 items-center justify-center rounded-full border border-[rgba(207,171,103,0.3)] bg-[rgba(207,171,103,0.05)] px-6 py-3 text-[10px] uppercase tracking-[0.25em] text-gold transition-all hover:bg-[rgba(207,171,103,0.15)] hover:text-white hover:border-gold/50 hover:-translate-y-0.5"
                 >
-                  {feature.linkText} ↗
+                  {feature.linkText} <ArrowUpRight className="ml-2 w-3 h-3" />
                 </Link>
 
                 {/* Progress bar */}
@@ -207,7 +208,7 @@ export function FeatureShowcase() {
                   href={feature.link}
                   className="inline-flex mt-2 items-center justify-center rounded-full border border-[rgba(207,171,103,0.3)] bg-[rgba(207,171,103,0.05)] px-6 py-3 text-[10px] uppercase tracking-[0.25em] text-gold transition-all hover:bg-[rgba(207,171,103,0.15)] hover:text-white hover:border-gold/50"
                 >
-                  {feature.linkText} ↗
+                  {feature.linkText} <ArrowUpRight className="ml-2 w-3 h-3" />
                 </Link>
               </motion.div>
             </div>

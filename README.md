@@ -8,57 +8,57 @@
   <img src="https://img.shields.io/badge/Recharts-FF6384?style=for-the-badge" />
 </p>
 
-# 🏦 AI Portfolio Manager
+# AI Portfolio Manager
 
 > An intelligent, full-stack stock portfolio platform that helps beginner investors understand how much they can safely invest, explore AI-driven stock recommendations, simulate trades, run backtests, and monitor their portfolio — all in a stunning, premium dark-mode interface.
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 📊 Smart Dashboard
+### Smart Dashboard
 - **Portfolio vs NIFTY 50** real-time comparison chart
 - KPI cards showing total value, P&L, day change, and win rate
 - Sector-wise allocation donut chart
 - Animated search bar with stock suggestions dropdown
 
-### 🤖 AI Advisor
+### AI Advisor
 - Natural language chat interface powered by AI
 - Personalized investment advice based on risk profile
 - Explains complex signals in simple terms
 
-### 📈 Signal Engine
+### Signal Engine
 - AI-generated BUY / HOLD / SELL signals for 50+ NSE stocks
 - Technical indicators: RSI, MACD, SMA crossovers
 - Suitability scoring (0–100) based on user risk profile
 - Per-stock signal detail page with full technical breakdown
 
-### 💼 Portfolio Management
+### Portfolio Management
 - Real-time portfolio tracking with holdings breakdown
 - **Trade simulation** with interactive Buy/Sell modals
 - **Platform fee**: 0.1% or ₹20 minimum (whichever is higher)
 - Trade history ledger with **Excel (.xlsx) export**
 - Fee transparency — every trade shows subtotal, fee, and total
 
-### 👁️ AI Watchlist
+### AI Watchlist
 - Add stocks for continuous AI monitoring
-- Status indicators: ✅ All Clear, ⚠️ Watch, 🔴 Action Needed
+- Status indicators: All Clear, Watch, Action Needed
 - AI-generated notes explaining each alert
 - One-click add from search dropdown
 
-### 🔬 Backtesting Engine
+### Backtesting Engine
 - SMA Crossover strategy simulation on historical NSE data
 - **5 free backtests**, then ₹49/run premium pricing
 - Equity curve, drawdown chart, monthly returns heatmap
 - Strategy vs Buy & Hold benchmark comparison
 - Full trade table, Sharpe ratio, CAGR, win rate metrics
 
-### 💰 Wallet System
+### Wallet System
 - Virtual wallet with deposit/withdraw functionality
 - Transaction history with running balance
 - Supports trade execution from wallet balance
 
-### 🔍 Smart Search
+### Smart Search
 - Global search dropdown in navbar with **45+ Indian stocks**
 - Shows trending stocks by sector on focus
 - Real-time filtering by symbol or company name
@@ -66,7 +66,7 @@
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Layer        | Technology                                              |
 |-------------|--------------------------------------------------------|
@@ -81,7 +81,7 @@
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ai-portfolio-manager/
@@ -118,12 +118,11 @@ ai-portfolio-manager/
 │   │       ├── types.ts         # TypeScript interfaces
 │   │       └── validations.ts   # Zod schemas
 │   └── .env                     # API URL config
-│   └── .env                     # API URL config
 ```
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - **Node.js** ≥ 18
@@ -177,27 +176,27 @@ Navigate to **http://localhost:3000** and register a new account.
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 | Method | Endpoint                  | Description                        | Auth |
 |--------|---------------------------|------------------------------------|------|
-| POST   | `/api/auth/register`       | Create new user account            | ❌    |
-| POST   | `/api/auth/login`          | Login & get tokens                 | ❌    |
-| POST   | `/api/auth/refresh`        | Refresh access token               | 🔑    |
-| GET    | `/api/auth/me`             | Get current user profile           | 🔑    |
-| POST   | `/api/auth/logout`         | Invalidate tokens                  | 🔑    |
-| GET    | `/api/signals`             | Get AI stock signals               | 🔑    |
-| GET    | `/api/signals/:symbol`     | Get detailed signal for a stock    | 🔑    |
-| GET    | `/api/portfolio`           | Get portfolio snapshot             | 🔑    |
-| POST   | `/api/portfolio/trade`     | Execute a trade (buy/sell)         | 🔑    |
-| POST   | `/api/backtest`            | Run a backtest simulation          | 🔑    |
-| GET    | `/api/wallet`              | Get wallet balance & transactions  | 🔑    |
-| POST   | `/api/wallet/deposit`      | Add funds to wallet                | 🔑    |
-| POST   | `/api/wallet/withdraw`     | Withdraw funds from wallet         | 🔑    |
+| POST   | `/api/auth/register`       | Create new user account            | No   |
+| POST   | `/api/auth/login`          | Login & get tokens                 | No   |
+| POST   | `/api/auth/refresh`        | Refresh access token               | Yes  |
+| GET    | `/api/auth/me`             | Get current user profile           | Yes  |
+| POST   | `/api/auth/logout`         | Invalidate tokens                  | Yes  |
+| GET    | `/api/signals`             | Get AI stock signals               | Yes  |
+| GET    | `/api/signals/:symbol`     | Get detailed signal for a stock    | Yes  |
+| GET    | `/api/portfolio`           | Get portfolio snapshot             | Yes  |
+| POST   | `/api/portfolio/trade`     | Execute a trade (buy/sell)         | Yes  |
+| POST   | `/api/backtest`            | Run a backtest simulation          | Yes  |
+| GET    | `/api/wallet`              | Get wallet balance & transactions  | Yes  |
+| POST   | `/api/wallet/deposit`      | Add funds to wallet                | Yes  |
+| POST   | `/api/wallet/withdraw`     | Withdraw funds from wallet         | Yes  |
 
 ---
 
-## 💡 Design Principles
+## Design Principles
 
 - **Frontend-first**: Built to look & feel like a real product, not a school project
 - **Dark mode only**: High-contrast, premium fintech aesthetic with gold accents
@@ -208,7 +207,7 @@ Navigate to **http://localhost:3000** and register a new account.
 
 ---
 
-## 🔐 Security
+## Security
 
 - JWT-based authentication with access + refresh token rotation
 - Passwords hashed with bcrypt (12 rounds)
@@ -217,7 +216,7 @@ Navigate to **http://localhost:3000** and register a new account.
 
 ---
 
-## 🗺 Roadmap
+## Roadmap
 
 - [x] Dashboard with portfolio vs NIFTY chart
 - [x] AI signal engine with technical indicators
@@ -233,12 +232,12 @@ Navigate to **http://localhost:3000** and register a new account.
 
 ---
 
-## 📄 License
+## License
 
 This project is built for educational and demonstration purposes.
 
 ---
 
 <p align="center">
-  <sub>Built with ❤️ for the AI Portfolio Hackathon</sub>
+  <sub>Built for the AI Portfolio Hackathon</sub>
 </p>

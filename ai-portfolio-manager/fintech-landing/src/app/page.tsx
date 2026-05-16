@@ -4,6 +4,7 @@ import { FeatureShowcase } from '@/components/FeatureShowcase';
 import { InteractiveLogoGridSection } from '@/components/InteractiveLogoGridSection';
 import { WaitlistSection } from '@/components/WaitlistSection';
 import { Footer } from '@/components/Footer';
+import { Play, ArrowRight } from 'lucide-react';
 
 export default function Page() {
   return (
@@ -43,7 +44,7 @@ export default function Page() {
                   href="/auth/login"
                   className="inline-flex items-center justify-center rounded-full border border-white/10 px-7 py-4 text-sm uppercase tracking-[0.24em] text-muted transition hover:-translate-y-0.5 hover:border-gold/20 hover:text-text"
                 >
-                  Access System →
+                  Access System <ArrowRight className="ml-2 w-4 h-4" />
                 </a>
               </div>
             </Reveal>
@@ -152,7 +153,7 @@ export default function Page() {
                 Seamlessly connect your existing brokerage accounts and monitor intelligence across thousands of global equities in real-time.
               </p>
               <button className="px-6 py-3 bg-[rgba(207,171,103,0.1)] border border-gold/30 text-gold rounded-full hover:bg-[rgba(207,171,103,0.2)] transition-colors">
-                View Supported Integrations →
+                View Supported Integrations <ArrowRight className="inline-block ml-2 w-4 h-4" />
               </button>
             </div>
           </Reveal>
@@ -161,51 +162,6 @@ export default function Page() {
 
         {/* ============ WAITLIST ============ */}
         <WaitlistSection />
-
-        {/* ============ MOBILE APP QR ============ */}
-        <section className="px-5 py-24 sm:px-8 bg-[#070707]">
-          <div className="mx-auto max-w-7xl">
-            <Reveal>
-              <div className="glass-panel rounded-[40px] p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-12 border border-gold/10">
-                <div className="flex-1 text-center md:text-left">
-                  <div className="mb-4 text-[11px] uppercase tracking-[0.34em] text-gold">
-                    On the move
-                  </div>
-                  <h2 className="font-serifDisplay text-5xl sm:text-6xl text-text mb-6">
-                    Take the intelligence everywhere.
-                  </h2>
-                  <p className="text-muted max-w-lg mb-8 text-lg leading-relaxed">
-                    Scan the QR code to experience Fintech on your mobile device. All features, signals, and portfolio intelligence in the palm of your hand.
-                  </p>
-                  <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                    <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 flex items-center gap-3">
-                      <span className="text-gold text-xl"></span>
-                      <span className="text-xs font-semibold text-white/70 uppercase tracking-widest">App Store</span>
-                    </div>
-                    <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 flex items-center gap-3">
-                      <span className="text-gold text-xl">▶</span>
-                      <span className="text-xs font-semibold text-white/70 uppercase tracking-widest">Play Store</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="relative group">
-                  <div className="absolute -inset-4 bg-gold/5 blur-2xl rounded-full group-hover:bg-gold/10 transition-all duration-700" />
-                  <div className="relative glass-panel p-6 rounded-[2rem] border border-gold/20 shadow-[0_0_50px_rgba(207,171,103,0.05)]">
-                    <img 
-                      src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=exp://192.168.0.4:8081&color=cfab67&bgcolor=000000" 
-                      alt="Mobile App QR Code"
-                      className="w-48 h-48 sm:w-56 sm:h-56 rounded-xl grayscale hover:grayscale-0 transition-all duration-500"
-                    />
-                    <div className="mt-4 text-center">
-                      <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Scan to launch</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </section>
 
       </main>
       <Footer />
