@@ -1,0 +1,51 @@
+name: Daily Market Pipeline
+
+on:
+  schedule:
+    # 5:00 PM IST is 11:30 AM UTC
+    - cron: '30 11 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force overwrite existing S3 data'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ai-portfolio-manager/backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./ai-portfolio-manager/backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./ai-portfolio-manager/backend
+        run: npx prisma generate
+
+      - name: Run Pipeline
+        working-directory: ./ai-portfolio-manager/backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            npm run pipeline:force
+          else
+            npm run pipeline
+          fi
