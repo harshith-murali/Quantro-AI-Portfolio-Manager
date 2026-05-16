@@ -103,7 +103,7 @@ export default function PortfolioPage() {
       <div className="text-center">
         <p className="text-6xl mb-4 text-white/10">◌</p>
         <p className="text-white/40 mb-4">Portfolio not found</p>
-        <button onClick={() => router.push("/signals")} className="gold-btn">Browse signals →</button>
+        <button onClick={() => router.push("/signals")} className="gold-btn">Browse signals <ArrowRight className="ml-2 w-4 h-4 inline-block" /></button>
       </div>
     </div>
   );
@@ -169,7 +169,7 @@ export default function PortfolioPage() {
               <p className="text-4xl mb-3 text-white/10">◌</p>
               <p className="text-white/30 text-sm mb-3">No open positions yet</p>
               <div className="flex gap-2 justify-center">
-                <button onClick={() => router.push("/signals")} className="text-gold text-sm hover:underline">Browse AI signals →</button>
+                <button onClick={() => router.push("/signals")} className="text-gold text-sm hover:underline">Browse AI signals <ArrowRight className="ml-2 w-4 h-4 inline-block" /></button>
               </div>
               {/* Suggestion cards */}
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">

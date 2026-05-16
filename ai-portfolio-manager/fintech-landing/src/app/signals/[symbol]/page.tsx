@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   Star,
   Clock,
-  Wallet
+  Wallet,
+  ArrowRight
 } from "lucide-react";
 import { CandlestickChart } from "@/components/CandlestickChart";
 
@@ -562,7 +563,7 @@ export default function SignalDetailPage() {
             <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <p className="text-red-400 text-sm font-medium mb-1">Insufficient wallet balance.</p>
               <Link href="/wallet" className="inline-flex items-center gap-1.5 text-gold text-xs font-semibold hover:underline">
-                <Wallet size={12} /> Add funds to Wallet →
+                <Wallet size={12} /> Add funds to Wallet <ArrowRight size={12} className="ml-1 inline-block" />
               </Link>
             </div>
           )}

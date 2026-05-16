@@ -7,7 +7,8 @@ import {
   Target, 
   Calendar, 
   Save, 
-  CheckCircle2
+  CheckCircle2,
+  ArrowRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -244,7 +245,7 @@ export default function ProfilePage() {
           className="glass-card">
           <div className="flex items-center justify-between mb-5">
             <p className="text-white/40 text-[10px] uppercase tracking-[0.25em]">Current Holdings</p>
-            <button onClick={() => router.push("/portfolio")} className="text-gold text-xs hover:underline">View Portfolio →</button>
+            <button onClick={() => router.push("/portfolio")} className="text-gold text-xs hover:underline flex items-center">View Portfolio <ArrowRight size={12} className="ml-1" /></button>
           </div>
           <div className="space-y-3">
             {holdings.map((h: any) => {

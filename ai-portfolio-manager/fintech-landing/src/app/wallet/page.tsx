@@ -9,7 +9,8 @@ import {
   ArrowDownRight, 
   CreditCard,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  ArrowRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -354,7 +355,7 @@ export default function WalletPage() {
               onClick={() => { setModal("deposit"); setAmount(""); setActionErr(""); }}
               className="mt-6 px-5 py-2 rounded-full border border-gold/30 text-gold text-xs hover:bg-gold/10 transition-all"
             >
-              Make first deposit →
+              Make first deposit <ArrowRight size={12} className="ml-1 inline-block" />
             </button>
           </div>
         ) : (

@@ -7,7 +7,8 @@ import {
   X, 
   Clock,
   Activity,
-  Wallet
+  Wallet,
+  ArrowRight
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -397,7 +398,7 @@ function SignalsPageContent() {
                     <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
                       <p className="text-red-400 text-sm font-medium mb-1">Insufficient funds in your wallet.</p>
                       <Link href="/wallet" className="inline-flex items-center gap-1.5 text-gold text-xs font-semibold hover:underline">
-                        <Wallet size={12} /> Add funds to Wallet →
+                        <Wallet size={12} /> Add funds to Wallet <ArrowRight size={12} className="ml-1 inline-block" />
                       </Link>
                     </div>
                   ) : (

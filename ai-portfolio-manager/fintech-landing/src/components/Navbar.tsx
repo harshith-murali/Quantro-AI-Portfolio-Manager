@@ -12,7 +12,8 @@ import {
   BarChart3, 
   LogOut, 
   TrendingUp, 
-  TrendingDown 
+  TrendingDown,
+  ArrowRight 
 } from "lucide-react";
 import { useAuth } from "@/lib/useAuth";
 import { api } from "@/lib/api";
@@ -343,7 +344,7 @@ export function Navbar() {
                 className="group relative flex items-center gap-2 border border-gold/30 rounded-xl px-6 py-2.5 text-sm font-semibold text-gold bg-gold/[0.02] hover:border-gold/60 hover:bg-gold/[0.05] transition-all duration-300"
               >
                 Enter
-                <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+                <ArrowRight size={14} className="ml-1 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             )}
           </div>
