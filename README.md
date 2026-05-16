@@ -118,7 +118,7 @@ ai-portfolio-manager/
 │   │       ├── types.ts         # TypeScript interfaces
 │   │       └── validations.ts   # Zod schemas
 │   └── .env                     # API URL config
-└── mobile-app/                  # React Native (planned)
+│   └── .env                     # API URL config
 ```
 
 ---
@@ -230,7 +230,6 @@ Navigate to **http://localhost:3000** and register a new account.
 - [ ] Options chain analysis
 - [ ] Multi-strategy backtesting
 - [ ] Push notifications for watchlist alerts
-- [ ] Mobile app (React Native)
 
 ---
 

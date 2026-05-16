@@ -1,26 +1,29 @@
 "use client";
 import { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import { 
-  Search, 
   ChevronDown, 
   Star, 
   CheckCircle2, 
   X, 
-  ArrowUpRight, 
-  TrendingUp, 
-  TrendingDown,
-  Info,
   Clock,
-  Target,
-  Zap,
   Activity,
-  Bot
+  Wallet
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import type { StockSignal } from "@/lib/types";
+
+// NSE trading hours: 9:15 – 15:30 IST (UTC+5:30)
+function isWithinTradingHours(): boolean {
+  const now = new Date();
+  const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const h = ist.getHours(), m = ist.getMinutes();
+  const mins = h * 60 + m;
+  return mins >= 9 * 60 + 15 && mins < 15 * 60 + 30;
+}
 
 const SIGNAL_STYLE: Record<string, string> = {
   BUY: "text-emerald-400 border-emerald-400/30 bg-emerald-400/5",
@@ -58,7 +61,7 @@ export default function SignalsPage() {
 function SignalsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { accessToken } = useStore();
+  const { accessToken, watchlist: watchlistArr, toggleWatchlist } = useStore();
   const [signals, setSignals] = useState<StockSignal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -87,7 +90,7 @@ function SignalsPageContent() {
   }, [searchParams]);
 
   const [updatedAt] = useState(() => new Date().toLocaleTimeString("en-IN"));
-  const [watchlist, setWatchlist] = useState<Set<string>>(new Set());
+  const watchlist = useMemo(() => new Set(watchlistArr), [watchlistArr]);
 
   // Trade modal state
   const [tradeModal, setTradeModal] = useState<{ symbol: string; price: number; type: "BUY" | "SELL" } | null>(null);
@@ -140,13 +143,7 @@ function SignalsPageContent() {
     return list;
   }, [signals, filter, sector, search, sort]);
 
-  const toggleWatchlist = (symbol: string) => {
-    setWatchlist(prev => {
-      const next = new Set(prev);
-      next.has(symbol) ? next.delete(symbol) : next.add(symbol);
-      return next;
-    });
-  };
+  // toggleWatchlist comes from store — no local state needed
 
   const bullishCount = (s: StockSignal) => {
     let count = 0;
@@ -396,13 +393,30 @@ function SignalsPageContent() {
                 })()}
 
                 {tradeResult && (
-                  <p className={`flex items-center gap-2 text-sm font-medium ${tradeResult.ok ? "text-emerald-400" : "text-red-400"}`}>
-                    {tradeResult.ok ? <CheckCircle2 size={16} /> : null}{tradeResult.msg}
-                  </p>
+                  tradeResult.msg === "__FUNDS__" ? (
+                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                      <p className="text-red-400 text-sm font-medium mb-1">Insufficient funds in your wallet.</p>
+                      <Link href="/wallet" className="inline-flex items-center gap-1.5 text-gold text-xs font-semibold hover:underline">
+                        <Wallet size={12} /> Add funds to Wallet →
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className={`flex items-center gap-2 text-sm font-medium ${tradeResult.ok ? "text-emerald-400" : "text-red-400"}`}>
+                      {tradeResult.ok ? <CheckCircle2 size={16} /> : null}{tradeResult.msg}
+                    </p>
+                  )
+                )}
+
+                {/* Trading hours banner */}
+                {!isWithinTradingHours() && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                    <Clock size={14} className="text-yellow-400 shrink-0" />
+                    <p className="text-yellow-400 text-xs">NSE is closed. Trading hours: <span className="font-semibold">9:15 AM – 3:30 PM IST</span></p>
+                  </div>
                 )}
 
                 <button
-                  disabled={tradeLoading || !tradeQty || Number(tradeQty) < 1}
+                  disabled={tradeLoading || !tradeQty || Number(tradeQty) < 1 || !isWithinTradingHours()}
                   onClick={async () => {
                     if (!accessToken || !tradeModal) return;
                     setTradeLoading(true);
@@ -415,7 +429,13 @@ function SignalsPageContent() {
                       setTradeResult({ ok: true, msg: `${tradeModal.type} order placed! Redirecting…` });
                       setTimeout(() => { setTradeModal(null); router.push("/portfolio"); }, 1500);
                     } catch (e: any) {
-                      setTradeResult({ ok: false, msg: e.message ?? "Trade failed" });
+                      const msg: string = e.message ?? "Trade failed";
+                      const isInsufficientFunds = msg.toLowerCase().includes("insufficient") || msg.toLowerCase().includes("balance") || msg.toLowerCase().includes("funds");
+                      if (isInsufficientFunds) {
+                        setTradeResult({ ok: false, msg: "__FUNDS__" });
+                      } else {
+                        setTradeResult({ ok: false, msg });
+                      }
                     } finally {
                       setTradeLoading(false);
                     }

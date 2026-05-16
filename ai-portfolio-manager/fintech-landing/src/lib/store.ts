@@ -26,11 +26,13 @@ interface AppState {
   refreshToken: string | null;
   user: UserProfile | null;
   portfolio: PortfolioSnapshot | null;
+  watchlist: string[]; // stored as array for JSON serialisation, used as Set in components
 
   setTokens: (accessToken: string | null, refreshToken: string | null) => void;
   setUser: (user: UserProfile | null) => void;
   setProfile: (user: UserProfile | null) => void;
   setPortfolio: (portfolio: PortfolioSnapshot | null) => void;
+  toggleWatchlist: (symbol: string) => void;
   logout: () => void;
 }
 
@@ -41,16 +43,28 @@ export const useStore = create<AppState>()(
       refreshToken: null,
       user: null,
       portfolio: null,
+      watchlist: [],
 
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setUser: (user) => set({ user }),
       setProfile: (user) => set({ user }),
       setPortfolio: (portfolio) => set({ portfolio }),
-      logout: () => set({ accessToken: null, refreshToken: null, user: null, portfolio: null }),
+      toggleWatchlist: (symbol) =>
+        set((state) => {
+          const s = new Set(state.watchlist);
+          s.has(symbol) ? s.delete(symbol) : s.add(symbol);
+          return { watchlist: Array.from(s) };
+        }),
+      logout: () => set({ accessToken: null, refreshToken: null, user: null, portfolio: null, watchlist: [] }),
     }),
     {
       name: "fintech-store",
-      partialize: (s) => ({ accessToken: s.accessToken, refreshToken: s.refreshToken, user: s.user }),
+      partialize: (s) => ({
+        accessToken: s.accessToken,
+        refreshToken: s.refreshToken,
+        user: s.user,
+        watchlist: s.watchlist,
+      }),
     }
   )
 );

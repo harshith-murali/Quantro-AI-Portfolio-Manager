@@ -165,3 +165,37 @@ export async function getNiftyLatest(): Promise<{
   };
 }
 
+/**
+ * Fetches OHLCV data using the new per-symbol key structure: ohlcv/{SYMBOL}.csv
+ */
+export async function fetchOHLCVFromS3ByNewKey(symbol: string) {
+  const key = `ohlcv/${symbol}.csv`;
+
+  try {
+    const csvContent = await getS3ObjectAsString(key);
+
+    const rawRecords = parse(csvContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+    });
+
+    const data = (rawRecords as any[]).map((record: any) => ({
+      date: record.Date,
+      open: Number(record.Open),
+      high: Number(record.High),
+      low: Number(record.Low),
+      close: Number(record.Close),
+      adjClose: Number(record['Adj Close']),
+      volume: Number(record.Volume),
+      symbol: record.Symbol,
+    }));
+
+    return { data, key };
+  } catch (error) {
+    logger.error('Error fetching or parsing S3 OHLCV data via new key', { error, symbol, key });
+    return null; // Return null instead of error object to handle gracefully in agent
+  }
+}
+
+

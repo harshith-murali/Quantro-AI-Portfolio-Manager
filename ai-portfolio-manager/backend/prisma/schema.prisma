@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -33,6 +32,7 @@ model User {
   wallet           Wallet?
   transactions     Transaction[]
   insightLogs      InsightLog[]
+  portfolioSummary PortfolioSummary?
 
   @@index([email])
   @@map("users")
@@ -199,3 +199,25 @@ model InsightLog {
   @@index([insightType])
   @@map("insight_logs")
 }
+
+model PortfolioSummary {
+  id                   String   @id @default(cuid())
+  userId               String   @unique @map("user_id")
+  totalValue           Decimal  @map("total_value") @db.Decimal(15, 2)
+  totalInvested        Decimal  @map("total_invested") @db.Decimal(15, 2)
+  unrealizedPnl        Decimal  @map("unrealized_pnl") @db.Decimal(15, 2)
+  unrealizedPnlPct     Decimal  @map("unrealized_pnl_pct") @db.Decimal(15, 2)
+  realizedPnl          Decimal  @map("realized_pnl") @db.Decimal(15, 2)
+  dayChange            Decimal  @map("day_change") @db.Decimal(15, 2)
+  dayChangePercent     Decimal  @map("day_change_percent") @db.Decimal(15, 2)
+  sevenDayReturn       Decimal? @map("seven_day_return") @db.Decimal(15, 2)
+  thirtyDayReturn      Decimal? @map("thirty_day_return") @db.Decimal(15, 2)
+  dataCoveragePercent  Decimal  @map("data_coverage_percent") @db.Decimal(15, 2)
+  updateStatus         String   @map("update_status") @db.VarChar(20)
+  lastPriceUpdate      DateTime @map("last_price_update")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("portfolio_summaries")
+}
+

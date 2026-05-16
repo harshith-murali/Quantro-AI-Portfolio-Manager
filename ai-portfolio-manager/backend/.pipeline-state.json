@@ -1,0 +1,465 @@
+{
+  "date": "2026-05-15",
+  "status": "COMPLETE",
+  "startedAt": "2026-05-16T20:47:09.045Z",
+  "agentResults": {
+    "marketData": {
+      "total": 64,
+      "successCount": 62,
+      "symbols": [
+        {
+          "symbol": "ADANIENT",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "ADANIPORTS",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "APOLLOHOSP",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "ASIANPAINT",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "AXISBANK",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "BAJAJ-AUTO",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "BAJFINANCE",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "BAJAJFINSV",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "BEL",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "BHARTIARTL",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "CIPLA",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "COALINDIA",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "DRREDDY",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "EICHERMOT",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "GRASIM",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "HCLTECH",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "HDFCBANK",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "HDFCLIFE",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "HINDALCO",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "HINDUNILVR",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "ICICIBANK",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "INFY",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "INDIGO",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "ITC",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "JIOFIN",
+          "status": "OK",
+          "rowsSaved": 669,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "JSWSTEEL",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "KOTAKBANK",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "LT",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "M&M",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "MARUTI",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "NESTLEIND",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "NTPC",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "ONGC",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "POWERGRID",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "RELIANCE",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "SBILIFE",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "SHRIRAMFIN",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "SBIN",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "SUNPHARMA",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "TCS",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "TATACONSUM",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "TATAMOTORS",
+          "status": "ERROR",
+          "rowsSaved": 0,
+          "message": "No data found, symbol may be delisted"
+        },
+        {
+          "symbol": "TATASTEEL",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "TECHM",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "TITAN",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "TRENT",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "ULTRACEMCO",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "WIPRO",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "BPCL",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "BRITANNIA",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "DIVISLAB",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "HEROMOTOCO",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "INDUSINDBK",
+          "status": "OK",
+          "rowsSaved": 1015,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "LTIM",
+          "status": "ERROR",
+          "rowsSaved": 0,
+          "message": "No data found, symbol may be delisted"
+        },
+        {
+          "symbol": "NIFTYBEES",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "JUNIORBEES",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "GOLDBEES",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "BANKBEES",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "LIQUIDBEES",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "ITBEES",
+          "status": "OK",
+          "rowsSaved": 993,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "PSUBNKBEES",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "CONSUMBEES",
+          "status": "OK",
+          "rowsSaved": 993,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "SHARIABEES",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        },
+        {
+          "symbol": "CPSEETF",
+          "status": "OK",
+          "rowsSaved": 1014,
+          "maxDate": "2026-05-15",
+          "message": "Existing data is up-to-date or better"
+        }
+      ]
+    },
+    "portfolioIntelligence": {
+      "status": "SUCCESS",
+      "usersUpdated": 3,
+      "skipCount": 0
+    }
+  },
+  "completedAt": "2026-05-16T20:50:02.542Z"
+}

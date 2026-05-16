@@ -17,6 +17,16 @@ function getMockLiveValue(quantity: number, averageBuy: number, symbol: string):
 }
 
 /**
+ * Helper to compute live value using real close prices if available, falling back to mock.
+ */
+export function getRealLivePrice(quantity: number, averageBuy: number, symbol: string, latestPrices?: Record<string, number>): number {
+  if (latestPrices && latestPrices[symbol]) {
+    return Number((quantity * latestPrices[symbol]).toFixed(2));
+  }
+  return getMockLiveValue(quantity, averageBuy, symbol);
+}
+
+/**
  * 1. Top-level Portfolio KPIs
  */
 export async function getSummary(userId: string) {

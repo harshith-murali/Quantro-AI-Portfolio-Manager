@@ -17,6 +17,7 @@ import {
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { searchStocks, STOCK_DATABASE, type StockInfo } from "@/lib/stockData";
+import { Star } from "lucide-react";
 
 interface WatchlistStock {
   symbol: string;
@@ -63,7 +64,7 @@ const STATUS_STYLES = {
 
 export default function WatchlistPage() {
   const router = useRouter();
-  const { accessToken } = useStore();
+  const { accessToken, watchlist: storeWatchlist, toggleWatchlist } = useStore();
   const [watchlist, setWatchlist] = useState<WatchlistStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [addSymbol, setAddSymbol] = useState("");
@@ -71,19 +72,33 @@ export default function WatchlistPage() {
   const [filter, setFilter] = useState<"ALL" | "OK" | "WARNING" | "ALERT">("ALL");
 
   useEffect(() => {
-    if (!accessToken) {
-      router.push("/auth/login");
-      return;
-    }
-    // Simulate loading watchlist (would be from backend in production)
+    if (!accessToken) { router.push("/auth/login"); return; }
     setTimeout(() => {
-      setWatchlist(MOCK_WATCHLIST);
+      // Merge MOCK_WATCHLIST with any symbols added via the signals page
+      const storeSymbols = storeWatchlist.filter(
+        (sym) => !MOCK_WATCHLIST.find((m) => m.symbol === sym)
+      );
+      const extra: WatchlistStock[] = storeSymbols.map((sym) => {
+        const info = STOCK_DATABASE.find((s) => s.symbol === sym);
+        return {
+          symbol: sym,
+          addedAt: new Date().toISOString().split("T")[0],
+          currentPrice: info?.price ?? 1000 + Math.random() * 3000,
+          changePercent: info?.changePct ?? (Math.random() - 0.5) * 6,
+          aiStatus: "OK" as const,
+          aiNote: `AI is now monitoring ${sym}. Initial analysis will be ready shortly.`,
+          sector: info?.sector ?? "Other",
+        };
+      });
+      setWatchlist([...MOCK_WATCHLIST, ...extra]);
       setLoading(false);
     }, 600);
-  }, [accessToken]);
+  }, [accessToken, storeWatchlist]);
 
   const removeFromWatchlist = (symbol: string) => {
     setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol));
+    // If the symbol is in the global store watchlist, remove it there too
+    if (storeWatchlist.includes(symbol)) toggleWatchlist(symbol);
   };
 
   const addToWatchlist = (sym?: string) => {
@@ -241,6 +256,7 @@ export default function WatchlistPage() {
                   </button>
                   <button
                     onClick={() => removeFromWatchlist(stock.symbol)}
+                    title="Remove from watchlist"
                     className="px-3 py-2 rounded-xl border border-white/10 text-white/30 text-xs font-medium hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/5 transition-all"
                   >
                     <Trash2 size={12} />

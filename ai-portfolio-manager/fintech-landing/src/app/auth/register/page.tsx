@@ -30,7 +30,7 @@ export default function RegisterPage() {
       });
       useStore.getState().setTokens(accessToken, refreshToken);
       setUser(user);
-      router.push("/profile");
+      router.push("/auth/onboarding");
     } catch (e: any) {
       setServerError(e.message ?? "Registration failed. Try a different email.");
     }

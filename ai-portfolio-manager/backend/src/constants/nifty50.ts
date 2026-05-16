@@ -64,3 +64,14 @@ export type Nifty50Symbol = typeof NIFTY_50_SYMBOLS[number];
 
 // Fast-lookup set for validation
 export const NIFTY_50_SET = new Set<string>(NIFTY_50_SYMBOLS);
+
+import { ETF_SYMBOLS } from './etfs';
+
+// Map of our internal symbol to Yahoo Finance ticker (.NS for NSE)
+export const YAHOO_TICKER_MAP: Record<string, string> = {};
+for (const sym of NIFTY_50_SYMBOLS) {
+  YAHOO_TICKER_MAP[sym] = `${sym}.NS`;
+}
+for (const sym of ETF_SYMBOLS) {
+  YAHOO_TICKER_MAP[sym] = `${sym}.NS`;
+}

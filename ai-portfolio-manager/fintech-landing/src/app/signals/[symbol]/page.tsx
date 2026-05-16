@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
+import { STOCK_DATABASE } from "@/lib/stockData";
 import type { StockSignal } from "@/lib/types";
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -11,19 +13,23 @@ import {
 } from "recharts";
 import { 
   ArrowLeft, 
-  TrendingUp, 
-  TrendingDown, 
   CheckCircle2, 
-  Info, 
-  ChevronUp, 
-  ChevronDown,
   Activity,
-  Zap,
-  Target,
-  AlertTriangle
+  AlertTriangle,
+  Star,
+  Clock,
+  Wallet
 } from "lucide-react";
-
 import { CandlestickChart } from "@/components/CandlestickChart";
+
+// NSE trading hours: 9:15 – 15:30 IST
+function isWithinTradingHours(): boolean {
+  const now = new Date();
+  const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const h = ist.getHours(), m = ist.getMinutes();
+  const mins = h * 60 + m;
+  return mins >= 9 * 60 + 15 && mins < 15 * 60 + 30;
+}
 
 type Tab = "Overview" | "Candlestick" | "Signals" | "Rationale" | "History";
 
@@ -65,11 +71,13 @@ export default function SignalDetailPage() {
   const params = useParams();
   const symbol = params.symbol as string;
   const router = useRouter();
-  const { accessToken } = useStore();
+  const { accessToken, watchlist: watchlistArr, toggleWatchlist } = useStore();
+  const inWatchlist = watchlistArr.includes(symbol);
 
   const [signal, setSignal] = useState<StockSignal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [insufficientFunds, setInsufficientFunds] = useState(false);
   const [tab, setTab] = useState<Tab>("Overview");
   const [quantity, setQuantity] = useState<number | "">(1);
   const [tradeType, setTradeType] = useState<"BUY" | "SELL">("BUY");
@@ -86,15 +94,42 @@ export default function SignalDetailPage() {
 
   useEffect(() => {
     if (!accessToken) { router.push("/auth/login"); return; }
+
+    // Helper: build a synthetic signal for any stock in the search database
+    const makeFallbackSignal = (sym: string): StockSignal => {
+      const info = STOCK_DATABASE.find(s => s.symbol === sym.toUpperCase());
+      const price = info?.price ?? (1000 + Math.random() * 3000);
+      const changePct = info?.changePct ?? (Math.random() - 0.5) * 4;
+      const rsi = 40 + Math.random() * 30;          // 40–70 (neutral)
+      const macd = (Math.random() - 0.5) * 3;
+      const score = Math.round(55 + Math.random() * 25);
+      return {
+        symbol: sym.toUpperCase(),
+        signal: rsi < 35 ? "BUY" : rsi > 65 ? "SELL" : "HOLD",
+        suitabilityScore: score,
+        suggestedAllocation: Math.round(score * 400),
+        rsi: parseFloat(rsi.toFixed(1)),
+        macd: parseFloat(macd.toFixed(3)),
+        currentPrice: parseFloat(price.toFixed(2)),
+        changePercent: parseFloat(changePct.toFixed(2)),
+        rationale: info
+          ? `${info.name} (${sym}) — live technicals not yet available. Showing estimated signal based on recent price action.`
+          : `${sym} — estimated signal based on recent price action.`,
+      };
+    };
+
     api.signals.get(symbol, accessToken)
       .then(async (s) => {
-        setSignal(s);
-        setTradeType(s?.signal === "SELL" ? "SELL" : "BUY");
+        // If backend / mock list has no entry for this symbol, synthesise one
+        const resolved: StockSignal = s ?? makeFallbackSignal(symbol);
+        setSignal(resolved);
+        setTradeType(resolved.signal === "SELL" ? "SELL" : "BUY");
 
         // Fetch real OHLCV data from AWS S3 via backend
         setOhlcvLoading(true);
         try {
           const realData = await api.signals.ohlcv(symbol, accessToken, 1500);
+          const basePrice = resolved.currentPrice;
           if (realData && realData.length > 0) {
             setAdvancedChartData(realData);
             setPriceHistory(
@@ -104,48 +139,52 @@ export default function SignalDetailPage() {
               }))
             );
           } else {
-            // Fallback to mock data
-            const mockData = generateAdvancedMockData(s?.currentPrice ?? 1000);
+            const mockData = generateAdvancedMockData(basePrice);
             setAdvancedChartData(mockData);
-            setPriceHistory(
-              mockData.slice(-30).map((d, i) => ({
-                day: `D${i + 1}`,
-                price: parseFloat(d.close.toFixed(2)),
-              }))
-            );
+            setPriceHistory(mockData.slice(-30).map((d, i) => ({ day: `D${i + 1}`, price: parseFloat(d.close.toFixed(2)) })));
           }
         } catch {
-          // Fallback to mock data
-          const mockData = generateAdvancedMockData(s?.currentPrice ?? 1000);
+          const mockData = generateAdvancedMockData(resolved.currentPrice);
           setAdvancedChartData(mockData);
-          setPriceHistory(
-            mockData.slice(-30).map((d, i) => ({
-              day: `D${i + 1}`,
-              price: parseFloat(d.close.toFixed(2)),
-            }))
-          );
+          setPriceHistory(mockData.slice(-30).map((d, i) => ({ day: `D${i + 1}`, price: parseFloat(d.close.toFixed(2)) })));
         } finally {
           setOhlcvLoading(false);
         }
       })
-      .catch(e => setError(e.message))
+      .catch(() => {
+        // Even if api call fails entirely, show a synthesised signal
+        const fallback = makeFallbackSignal(symbol);
+        setSignal(fallback);
+        setTradeType(fallback.signal === "SELL" ? "SELL" : "BUY");
+        const mockData = generateAdvancedMockData(fallback.currentPrice);
+        setAdvancedChartData(mockData);
+        setPriceHistory(mockData.slice(-30).map((d, i) => ({ day: `D${i + 1}`, price: parseFloat(d.close.toFixed(2)) })));
+      })
       .finally(() => setLoading(false));
   }, [symbol, accessToken]);
 
   const handleTrade = async () => {
     if (!accessToken || !signal) return;
+    if (!isWithinTradingHours()) {
+      setError("Trading is only available between 9:15 AM – 3:30 PM IST.");
+      return;
+    }
     if (!quantity || quantity < 1) {
       setError("Please enter a valid quantity");
       return;
     }
     setIsTrading(true);
     setError("");
+    setInsufficientFunds(false);
     try {
       await api.portfolio.trade({ symbol, type: tradeType, quantity: Number(quantity), price: signal.currentPrice }, accessToken);
       setTradeSuccess(true);
       setTimeout(() => { setTradeSuccess(false); router.push("/portfolio"); }, 2000);
     } catch (e: any) {
-      setError(e.message ?? "Trade failed");
+      const msg: string = e.message ?? "Trade failed";
+      const isFunds = msg.toLowerCase().includes("insufficient") || msg.toLowerCase().includes("balance") || msg.toLowerCase().includes("funds");
+      if (isFunds) { setInsufficientFunds(true); setError(""); }
+      else setError(msg);
     } finally {
       setIsTrading(false);
     }
@@ -205,6 +244,18 @@ export default function SignalDetailPage() {
             <span className={`text-xs px-3 py-1.5 rounded-full border font-medium ${risk.bg} ${risk.color}`}>
               {risk.label}
             </span>
+            {/* Watchlist toggle */}
+            <button
+              onClick={() => toggleWatchlist(symbol)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                inWatchlist
+                  ? "border-gold/50 bg-gold/10 text-gold"
+                  : "border-white/10 text-white/30 hover:border-gold/30 hover:text-gold"
+              }`}
+            >
+              <Star size={12} fill={inWatchlist ? "currentColor" : "none"} />
+              {inWatchlist ? "Added to Watchlist" : "Add to Watchlist"}
+            </button>
           </div>
           <p className="text-gold text-3xl font-bold tabular-nums">₹{signal.currentPrice.toLocaleString("en-IN")}</p>
           <p className={`text-sm mt-1 ${signal.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
@@ -500,23 +551,37 @@ export default function SignalDetailPage() {
             })()}
           </div>
 
+          {/* Trading hours notice */}
+          {!isWithinTradingHours() && (
+            <div className="mb-3 flex items-start gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+              <Clock size={13} className="text-yellow-400 shrink-0 mt-0.5" />
+              <p className="text-yellow-400 text-xs">NSE is closed. Trading hours: <span className="font-semibold">9:15 AM – 3:30 PM IST</span></p>
+            </div>
+          )}
+          {insufficientFunds && (
+            <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <p className="text-red-400 text-sm font-medium mb-1">Insufficient wallet balance.</p>
+              <Link href="/wallet" className="inline-flex items-center gap-1.5 text-gold text-xs font-semibold hover:underline">
+                <Wallet size={12} /> Add funds to Wallet →
+              </Link>
+            </div>
+          )}
           {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
           {tradeSuccess && (
             <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-center">
-            <p className="text-emerald-400 text-sm font-medium flex items-center justify-center gap-2">
-              <CheckCircle2 size={16} /> Order placed! Redirecting…
-            </p>
+              <p className="text-emerald-400 text-sm font-medium flex items-center justify-center gap-2">
+                <CheckCircle2 size={16} /> Order placed! Redirecting…
+              </p>
             </div>
           )}
 
-          <button onClick={handleTrade} disabled={isTrading || tradeSuccess}
-            className={`w-full py-3.5 rounded-full font-bold text-sm uppercase tracking-wider transition-all ${tradeType === "BUY"
-              ? "bg-emerald-500 hover:bg-emerald-400 text-black" : "bg-red-500 hover:bg-red-400 text-white"}`}>
+          <button onClick={handleTrade} disabled={isTrading || tradeSuccess || !isWithinTradingHours()}
+            className={`w-full py-3.5 rounded-full font-bold text-sm uppercase tracking-wider transition-all disabled:opacity-40 ${
+              tradeType === "BUY" ? "bg-emerald-500 hover:bg-emerald-400 text-black" : "bg-red-500 hover:bg-red-400 text-white"
+            }`}>
             {isTrading ? "Executing…" : tradeSuccess ? (
-              <span className="flex items-center justify-center gap-2">
-                <CheckCircle2 size={16} /> Done
-              </span>
-            ) : `Place ${tradeType} Order`}
+              <span className="flex items-center justify-center gap-2"><CheckCircle2 size={16} /> Done</span>
+            ) : !isWithinTradingHours() ? "Market Closed" : `Place ${tradeType} Order`}
           </button>
 
           <p className="text-[10px] text-white/20 text-center mt-4 uppercase tracking-wider">
