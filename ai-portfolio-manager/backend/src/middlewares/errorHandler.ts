@@ -49,11 +49,19 @@ export function errorHandler(
     method: req.method,
   });
 
+  let message = err.message;
+
+  // Sanitize Prisma or long internal errors
+  if (message.includes('Invalid `prisma') || message.includes('\n')) {
+    // If it looks like a Prisma stack trace or has newlines, use a generic message
+    message = 'A database error occurred while processing your request.';
+  }
+
   res.status(500).json(
     errorResponse(
       env.NODE_ENV === 'production'
         ? 'An unexpected error occurred'
-        : err.message,
+        : message,
     ),
   );
 }
