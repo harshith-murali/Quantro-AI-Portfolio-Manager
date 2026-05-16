@@ -10,7 +10,7 @@ async function testPortfolioAPI() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: 'Postman Tester',
-      email: `test_${Date.now()}@fintech.dev`,
+      email: `test_${Date.now()}@quantro.dev`,
       password: 'Password123!',
     }),
   });

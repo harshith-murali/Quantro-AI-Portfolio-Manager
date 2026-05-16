@@ -3,25 +3,25 @@ version: '3.9'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: fintech_postgres
+    container_name: quantro_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: fintech_user
-      POSTGRES_PASSWORD: fintech_password
-      POSTGRES_DB: fintech_db
+      POSTGRES_USER: quantro_user
+      POSTGRES_PASSWORD: quantro_password
+      POSTGRES_DB: quantro_db
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fintech_user -d fintech_db"]
+      test: ["CMD-SHELL", "pg_isready -U quantro_user -d quantro_db"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: fintech_redis
+    container_name: quantro_redis
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:

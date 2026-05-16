@@ -10,7 +10,7 @@ async function testAnalyticsFlow() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: 'Analytics Guru',
-      email: `metrics_${Date.now()}@fintech.dev`,
+      email: `metrics_${Date.now()}@quantro.dev`,
       password: 'Password123!',
     }),
   });
