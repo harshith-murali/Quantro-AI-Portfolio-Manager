@@ -55,7 +55,8 @@ export const TICKERS = [
 
 export const getIconUrl = (slug: string, symbol?: string) => {
   if (symbol) {
-    return `/logos/${symbol}.png`;
+    const safeSymbol = symbol.replace(/&/g, '');
+    return `/logos/${safeSymbol}.png`;
   }
   return ic(slug);
 };
