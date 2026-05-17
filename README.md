@@ -55,7 +55,8 @@
 
 ### Agentic AI Data Pipeline
 - Automated daily workflow executing at 5:30 PM
-- Agentic AI fetches end-of-day market data directly from **Yahoo Finance**
+- **GitHub Actions** and **AWS Lambda** functions work in tandem to securely orchestrate and fetch end-of-day market data directly from Yahoo Finance
+- Stores raw OHLCV market data securely in **AWS S3**
 - Automatically recalculates portfolio P&L and updates metrics based on the latest closing prices
 
 ### Wallet System
@@ -81,6 +82,8 @@
 | **Backend**  | Node.js, Express, Prisma ORM                            |
 | **Database** | PostgreSQL 18                                           |
 | **Auth**     | JWT (access + refresh tokens), bcrypt                   |
+| **Compute**  | AWS Lambda (Serverless data ingestion)                  |
+| **Storage**  | AWS S3 (Historical Market Data Storage)                 |
 | **Export**   | SheetJS (xlsx) for Excel report generation              |
 | **State**    | Zustand (with persistence)                              |
 
