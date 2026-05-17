@@ -84,6 +84,7 @@
 | **Auth**     | JWT (access + refresh tokens), bcrypt                   |
 | **Compute**  | AWS Lambda (Serverless data ingestion)                  |
 | **Storage**  | AWS S3 (Historical Market Data Storage)                 |
+| **Cache**    | Redis (Caching & Rate Limiting, currently mocked)       |
 | **Export**   | SheetJS (xlsx) for Excel report generation              |
 | **State**    | Zustand (with persistence)                              |
 
