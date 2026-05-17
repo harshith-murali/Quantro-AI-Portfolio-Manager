@@ -298,7 +298,9 @@ export async function getTransactionSummary(userId: string) {
  */
 export async function invalidateWalletCache(userId: string) {
   const keys = await redis.keys(`wallet:*:${userId}*`);
-  if (keys.length > 0) {
-    await redis.del(...keys);
+  const portfolioKeys = await redis.keys(`portfolio:*:${userId}*`);
+  const allKeys = [...keys, ...portfolioKeys];
+  if (allKeys.length > 0) {
+    await redis.del(...allKeys);
   }
 }

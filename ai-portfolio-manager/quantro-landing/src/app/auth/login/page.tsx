@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,13 +8,23 @@ import { api } from "@/lib/api";
 import { useStore } from "@/lib/store";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useStore();
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [expiredMsg, setExpiredMsg] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("expired") === "true") {
+        setExpiredMsg(true);
+      }
+    }
+  }, []);
 
   const {
     register,
@@ -51,6 +61,15 @@ export default function LoginPage() {
 
         <h1 className="font-serifDisplay text-4xl sm:text-5xl text-white mb-3">Welcome back</h1>
         <p className="text-white/40 text-[15px] mb-8">Sign in to your portfolio</p>
+
+        {expiredMsg && (
+          <div className="p-4 mb-6 rounded-xl bg-gold/10 border border-gold/20 flex items-center gap-3 text-gold">
+            <AlertCircle size={18} className="shrink-0" />
+            <span className="text-xs leading-relaxed font-semibold">
+              Your session has expired. Please sign in again.
+            </span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>

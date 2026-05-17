@@ -91,7 +91,9 @@ export default function AIAdvisorPage() {
     try {
       const d = await api.insights.recommendations(accessToken);
       if (d.recommendations) {
-        setRecs(d.recommendations.map((r: any) => ({
+        const holdingSymbols = new Set(holdings.map((h: any) => h.symbol));
+        const filteredRecs = d.recommendations.filter((r: any) => !holdingSymbols.has(r.symbol));
+        setRecs(filteredRecs.map((r: any) => ({
           ...r,
           totalCost: r.qty * r.price,
         })));
@@ -130,7 +132,16 @@ export default function AIAdvisorPage() {
     try {
       await api.portfolio.trade({ symbol: activeRec.symbol, action:"BUY", quantity: Number(buyQty), price: activeRec.price }, accessToken);
       setBuyMsg(`Order successful: ${buyQty} × ${activeRec.symbol}`);
-      setTimeout(() => { setActiveRec(null); setBuyMsg(""); setBuyQty(""); }, 1800);
+      setTimeout(() => { 
+        setActiveRec(null); 
+        setBuyMsg(""); 
+        setBuyQty(""); 
+        setRecs(prev => prev.filter(r => r.symbol !== activeRec.symbol));
+        Promise.allSettled([
+          api.portfolio.holdings(accessToken).then((d:any) => setHoldings(d.holdings ?? d ?? [])),
+          api.wallet.balance(accessToken).then((d:any) => setBalance(Number(d.balance??0)))
+        ]);
+      }, 1800);
     } catch(e:any) { setBuyErr(e.message ?? "Trade failed"); }
     finally { setBuying(false); }
   };

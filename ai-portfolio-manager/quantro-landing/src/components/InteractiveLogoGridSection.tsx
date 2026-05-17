@@ -9,7 +9,7 @@ export interface InteractiveLogoGridSectionProps {
 
 function StockIcon({ symbol, slug }: { symbol: string, slug: string }) {
   const [error, setError] = useState(false);
-  const iconUrl = getIconUrl(slug);
+  const iconUrl = getIconUrl(slug, symbol);
 
   return (
     <div className="flex flex-col items-center gap-2 group cursor-default">
@@ -41,9 +41,16 @@ export function InteractiveLogoGridSection({
 }: InteractiveLogoGridSectionProps) {
   
   const cells = useMemo(() => {
-    const step = 7; 
+    // Pseudo-random hash to prevent repeating diagonal patterns
+    // while maintaining deterministic SSR hydration
+    const hash = (x: number) => {
+      let h = x * 374761393 + 1374523;
+      h = (h ^ (h >> 13)) * 3266489917;
+      return (h ^ (h >> 16)) >>> 0;
+    };
+    
     return Array.from({ length: cellCount }).map((_, i) => ({
-      ...TICKERS[(i * step) % TICKERS.length],
+      ...TICKERS[hash(i) % TICKERS.length],
     }));
   }, [cellCount]);
 

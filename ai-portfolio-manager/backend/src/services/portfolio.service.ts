@@ -11,6 +11,26 @@ import {
 } from '@/services/transaction.service';
 import { invalidateDashboardCache } from '@/services/analytics.service';
 
+function checkMarketHours() {
+  if (process.env.BYPASS_MARKET_HOURS === 'true') return;
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const istTime = new Date(utc + (3600000 * 5.5));
+  
+  const day = istTime.getDay();
+  if (day === 0 || day === 6) {
+    throw new AppError("Market is currently closed. Trading hours are 09:15 AM to 03:30 PM IST (Mon-Fri).", 400);
+  }
+  
+  const hours = istTime.getHours();
+  const minutes = istTime.getMinutes();
+  const timeInMinutes = hours * 60 + minutes;
+  
+  if (timeInMinutes < 555 || timeInMinutes > 930) {
+    throw new AppError("Market is currently closed. Trading hours are 09:15 AM to 03:30 PM IST (Mon-Fri).", 400);
+  }
+}
+
 // ─── BUY ─────────────────────────────────────────────────────────
 /**
  * Places a virtual BUY order:
@@ -20,6 +40,7 @@ import { invalidateDashboardCache } from '@/services/analytics.service';
  * All wrapped in a transaction for atomicity.
  */
 export async function executeBuy(userId: string, input: TradeInput) {
+  checkMarketHours();
   const { symbol, quantity, price } = input;
   const total = quantity * price;
 
@@ -113,6 +134,7 @@ export async function executeBuy(userId: string, input: TradeInput) {
  *  4. Snapshots portfolio history
  */
 export async function executeSell(userId: string, input: TradeInput) {
+  checkMarketHours();
   const { symbol, quantity, price } = input;
   const total = quantity * price;
 
@@ -263,12 +285,13 @@ export async function getPortfolioSummary(userId: string) {
     return JSON.parse(cached);
   }
 
-  const [holdings, realizedResult] = await Promise.all([
+  const [holdings, realizedResult, wallet] = await Promise.all([
     prisma.holding.findMany({ where: { userId } }),
     prisma.trade.aggregate({
       where: { userId, type: 'SELL', realizedPnl: { not: null } },
       _sum: { realizedPnl: true },
     }),
+    prisma.wallet.findUnique({ where: { userId } }),
   ]);
 
   const totalInvested = holdings.reduce(
@@ -293,6 +316,8 @@ export async function getPortfolioSummary(userId: string) {
     unrealizedPnl: Number(unrealizedPnl.toFixed(2)),
     realizedPnl: Number(totalRealizedPnl.toFixed(2)),
     totalPnl: Number((unrealizedPnl + totalRealizedPnl).toFixed(2)),
+    walletBalance: wallet ? Number(wallet.balance) : 0,
+    virtualCash: wallet ? Number(wallet.balance) : 0,
   };
 
   await redis.set(cacheKey, JSON.stringify(summary), 'EX', 3600); // Cache for 1 hour

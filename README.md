@@ -53,6 +53,11 @@
 - Strategy vs Buy & Hold benchmark comparison
 - Full trade table, Sharpe ratio, CAGR, win rate metrics
 
+### Agentic AI Data Pipeline
+- Automated daily workflow executing at 5:30 PM
+- Agentic AI fetches end-of-day market data directly from **Yahoo Finance**
+- Automatically recalculates portfolio P&L and updates metrics based on the latest closing prices
+
 ### Wallet System
 - Virtual wallet with deposit/withdraw functionality
 - Transaction history with running balance

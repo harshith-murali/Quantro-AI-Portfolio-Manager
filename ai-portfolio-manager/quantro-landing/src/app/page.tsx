@@ -168,9 +168,6 @@ export default function Page() {
               <p className="text-muted max-w-lg mx-auto mb-8 text-lg text-center">
                 Seamlessly monitor intelligence and real-time signals across the Nifty 50.
               </p>
-              <button className="px-6 py-3 bg-[rgba(207,171,103,0.1)] border border-gold/30 text-gold rounded-full hover:bg-[rgba(207,171,103,0.2)] transition-colors">
-                View Supported Integrations <ArrowRight className="inline-block ml-2 w-4 h-4" />
-              </button>
             </div>
           </Reveal>
         </InteractiveLogoGridSection>

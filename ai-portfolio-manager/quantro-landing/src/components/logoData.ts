@@ -53,4 +53,9 @@ export const TICKERS = [
   { symbol: "HCLTECH", slug: "hcl" },
 ];
 
-export const getIconUrl = (slug: string) => ic(slug);
+export const getIconUrl = (slug: string, symbol?: string) => {
+  if (symbol) {
+    return `/logos/${symbol}.png`;
+  }
+  return ic(slug);
+};

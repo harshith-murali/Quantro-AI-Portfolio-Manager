@@ -1,3 +1,5 @@
+import { useStore } from "./store";
+
 // In the browser, use a relative /api path so requests go through the
 // Next.js rewrite proxy → Express backend (no CORS, no port-3001 exposure).
 // In server-side context (SSR / Route Handlers), hit the backend directly.
@@ -18,6 +20,40 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
     res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: "include" });
   } catch {
     throw new Error("Cannot reach the server. Please make sure the backend is running.");
+  }
+
+  // Intercept 401 Unauthorized errors (e.g., token expired) and attempt a silent token refresh
+  if (res.status === 401 && path !== "/auth/refresh" && path !== "/auth/login") {
+    const state = useStore.getState();
+    const rt = state.refreshToken;
+    if (rt) {
+      try {
+        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken: rt }),
+        });
+        if (refreshRes.ok) {
+          const refreshJson = await refreshRes.json();
+          const newData = refreshJson.data ?? refreshJson;
+          if (newData.accessToken && newData.refreshToken) {
+            state.setTokens(newData.accessToken, newData.refreshToken);
+            // Retry the original request with the fresh access token!
+            const newHeaders: HeadersInit = {
+              ...headers,
+              Authorization: `Bearer ${newData.accessToken}`,
+            };
+            const retryRes = await fetch(`${BASE_URL}${path}`, { ...options, headers: newHeaders, credentials: "include" });
+            res = retryRes;
+          }
+        } else {
+          // Refresh token also invalid/expired -> log out the user
+          state.logout();
+        }
+      } catch {
+        state.logout();
+      }
+    }
   }
 
   const json = await res.json().catch(() => ({ message: res.statusText }));
