@@ -12,7 +12,7 @@ const PUBLIC_ROUTES = ["/", "/auth/login", "/auth/register"];
  *
  * On every mount:
  *  1. Wait for Zustand persist to hydrate from localStorage.
- *  2. If a stored accessToken already exists → user is considered logged in.
+ *  2. If an in-memory accessToken already exists → user is considered logged in.
  *  3. If NO stored token and the route is protected → attempt a silent refresh
  *     using the HttpOnly refresh-token cookie the backend set at login.
  *     • Success → store new token + user, stay on page.
@@ -48,8 +48,6 @@ export function useAuth() {
 
       // 2. Read the freshly-hydrated token
       const storedToken = useStore.getState().accessToken;
-      const storedRefreshToken = useStore.getState().refreshToken;
-
       if (storedToken) {
         // Already logged in — nothing to do
         setReady(true);
@@ -57,10 +55,10 @@ export function useAuth() {
       }
 
       // 3. No stored token — try a silent refresh before giving up
-      if (!isPublic && storedRefreshToken) {
+      if (!isPublic) {
         try {
-          const { accessToken: newToken, refreshToken: newRefreshToken } = await api.auth.refresh(storedRefreshToken);
-          useStore.getState().setTokens(newToken, newRefreshToken);
+          const { accessToken: newToken } = await api.auth.refresh();
+          useStore.getState().setAccessToken(newToken);
           // Also re-hydrate user profile
           try {
             const data = await api.auth.me(newToken);

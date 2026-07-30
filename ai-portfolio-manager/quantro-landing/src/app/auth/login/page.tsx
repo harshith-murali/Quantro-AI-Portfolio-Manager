@@ -35,8 +35,8 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginInput) => {
     setServerError("");
     try {
-      const { user, accessToken, refreshToken } = await api.auth.login(data);
-      useStore.getState().setTokens(accessToken, refreshToken);
+      const { user, accessToken } = await api.auth.login(data);
+      useStore.getState().setAccessToken(accessToken);
       setUser(user);
       router.push("/dashboard");
     } catch (e: any) {

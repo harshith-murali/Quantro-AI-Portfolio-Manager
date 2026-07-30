@@ -25,34 +25,28 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
   // Intercept 401 Unauthorized errors (e.g., token expired) and attempt a silent token refresh
   if (res.status === 401 && path !== "/auth/refresh" && path !== "/auth/login") {
     const state = useStore.getState();
-    const rt = state.refreshToken;
-    if (rt) {
-      try {
-        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken: rt }),
-        });
-        if (refreshRes.ok) {
-          const refreshJson = await refreshRes.json();
-          const newData = refreshJson.data ?? refreshJson;
-          if (newData.accessToken && newData.refreshToken) {
-            state.setTokens(newData.accessToken, newData.refreshToken);
-            // Retry the original request with the fresh access token!
-            const newHeaders: HeadersInit = {
-              ...headers,
-              Authorization: `Bearer ${newData.accessToken}`,
-            };
-            const retryRes = await fetch(`${BASE_URL}${path}`, { ...options, headers: newHeaders, credentials: "include" });
-            res = retryRes;
-          }
-        } else {
-          // Refresh token also invalid/expired -> log out the user
-          state.logout();
+    try {
+      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (refreshRes.ok) {
+        const refreshJson = await refreshRes.json();
+        const newData = refreshJson.data ?? refreshJson;
+        if (newData.accessToken) {
+          state.setAccessToken(newData.accessToken);
+          const newHeaders: HeadersInit = {
+            ...headers,
+            Authorization: `Bearer ${newData.accessToken}`,
+          };
+          res = await fetch(`${BASE_URL}${path}`, { ...options, headers: newHeaders, credentials: "include" });
         }
-      } catch {
+      } else {
         state.logout();
       }
+    } catch {
+      state.logout();
     }
   }
 
@@ -80,19 +74,19 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
 export const api = {
   auth: {
     register: (body: { name: string; email: string; password: string }) =>
-      fetchAPI<{ user: any; accessToken: string; refreshToken: string }>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
+      fetchAPI<{ user: any; accessToken: string }>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
 
     login: (body: { email: string; password: string }) =>
-      fetchAPI<{ user: any; accessToken: string; refreshToken: string }>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+      fetchAPI<{ user: any; accessToken: string }>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
 
     me: (token: string) =>
       fetchAPI<{ user: any }>("/auth/me", {}, token),
 
-    refresh: (refreshToken?: string) =>
-      fetchAPI<{ accessToken: string; refreshToken: string }>("/auth/refresh", { method: "POST", body: JSON.stringify({ refreshToken }) }),
+    refresh: () =>
+      fetchAPI<{ accessToken: string }>("/auth/refresh", { method: "POST" }),
 
-    logout: (token: string, refreshToken?: string) =>
-      fetchAPI<void>("/auth/logout", { method: "POST", body: JSON.stringify({ refreshToken }) }, token),
+    logout: (token: string) =>
+      fetchAPI<void>("/auth/logout", { method: "POST" }, token),
   },
 
   // ─── Financial Profile ──────────────────────────────────────────
