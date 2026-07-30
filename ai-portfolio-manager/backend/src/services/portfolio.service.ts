@@ -11,6 +11,7 @@ import {
 } from '@/services/transaction.service';
 import { invalidateDashboardCache } from '@/services/analytics.service';
 import { getLatestMarketPrice } from '@/services/marketPrice.service';
+import { getPortfolioValuation, valueHoldingRows } from '@/services/portfolioValuation.service';
 
 function checkMarketHours() {
   if (process.env.BYPASS_MARKET_HOURS === 'true') return;
@@ -294,40 +295,7 @@ export async function getPortfolioSummary(userId: string) {
     return JSON.parse(cached);
   }
 
-  const [holdings, realizedResult, wallet] = await Promise.all([
-    prisma.holding.findMany({ where: { userId } }),
-    prisma.trade.aggregate({
-      where: { userId, type: 'SELL', realizedPnl: { not: null } },
-      _sum: { realizedPnl: true },
-    }),
-    prisma.wallet.findUnique({ where: { userId } }),
-  ]);
-
-  const totalInvested = holdings.reduce(
-    (sum, h) => sum + Number(h.totalInvested),
-    0,
-  );
-
-  // In a real system, currentValue = sum(qty * livePrice).
-  // For this MVP, we use the invested value (unrealized P&L needs live data).
-  const currentValue = holdings.reduce(
-    (sum, h) => sum + h.quantity * Number(h.averageBuyPrice),
-    0,
-  );
-
-  const unrealizedPnl = currentValue - totalInvested;
-  const totalRealizedPnl = Number(realizedResult._sum.realizedPnl ?? 0);
-
-  const summary = {
-    holdingsCount: holdings.length,
-    totalInvested: Number(totalInvested.toFixed(2)),
-    currentValue: Number(currentValue.toFixed(2)),
-    unrealizedPnl: Number(unrealizedPnl.toFixed(2)),
-    realizedPnl: Number(totalRealizedPnl.toFixed(2)),
-    totalPnl: Number((unrealizedPnl + totalRealizedPnl).toFixed(2)),
-    walletBalance: wallet ? Number(wallet.balance) : 0,
-    virtualCash: wallet ? Number(wallet.balance) : 0,
-  };
+  const summary = await getPortfolioValuation(userId);
 
   await redis.set(cacheKey, JSON.stringify(summary), 'EX', 3600); // Cache for 1 hour
   return summary;
@@ -381,10 +349,8 @@ async function snapshotPortfolio(
     0,
   );
 
-  const currentValue = holdings.reduce(
-    (sum, h) => sum + h.quantity * Number(h.averageBuyPrice),
-    0,
-  );
+  const { valuedHoldings } = await valueHoldingRows(holdings);
+  const currentValue = valuedHoldings.reduce((sum, h) => sum + h.currentValue, 0);
 
   const pnl = currentValue - totalInvested;
 
