@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc --project tsconfig.json",
-    "start": "node -r tsconfig-paths/register dist/server.js",
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
+    "start": "node dist/server.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -52,6 +52,7 @@
     "nodemon": "^3.1.1",
     "prisma": "^7.8.0",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.9.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.4.5"
   }
