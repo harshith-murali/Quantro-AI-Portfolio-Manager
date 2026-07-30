@@ -130,7 +130,7 @@ export default function AIAdvisorPage() {
     if (!accessToken || !activeRec || !buyQty) return;
     setBuying(true); setBuyMsg(""); setBuyErr("");
     try {
-      await api.portfolio.trade({ symbol: activeRec.symbol, action:"BUY", quantity: Number(buyQty), price: activeRec.price }, accessToken);
+      await api.portfolio.trade({ symbol: activeRec.symbol, action:"BUY", quantity: Number(buyQty) }, accessToken);
       setBuyMsg(`Order successful: ${buyQty} × ${activeRec.symbol}`);
       setTimeout(() => { 
         setActiveRec(null); 

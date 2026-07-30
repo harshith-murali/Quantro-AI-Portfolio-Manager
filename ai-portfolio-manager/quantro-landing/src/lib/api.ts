@@ -125,19 +125,18 @@ export const api = {
     holding: (symbol: string, token: string) =>
       fetchAPI<any>(`/holdings/${symbol}`, {}, token),
 
-    buy: (body: { symbol: string; quantity: number; price?: number }, token: string) =>
+    buy: (body: { symbol: string; quantity: number }, token: string) =>
       fetchAPI<any>("/trade/buy", { method: "POST", body: JSON.stringify(body) }, token),
 
-    sell: (body: { symbol: string; quantity: number; price?: number }, token: string) =>
+    sell: (body: { symbol: string; quantity: number }, token: string) =>
       fetchAPI<any>("/trade/sell", { method: "POST", body: JSON.stringify(body) }, token),
 
-    // Unified helper — routes to /trade/buy or /trade/sell based on action or type
-    // price is required by the backend Zod schema — caller should pass averageBuyPrice; fallback = 1
-    trade: (body: { symbol: string; action?: "BUY" | "SELL" | null; quantity: number; price?: number; type?: string }, token: string) => {
+    // Unified helper — routes to /trade/buy or /trade/sell based on action or type.
+    // Execution price is resolved by the backend from market data.
+    trade: (body: { symbol: string; action?: "BUY" | "SELL" | null; quantity: number; type?: string; price?: number }, token: string) => {
       const action = body.action ?? body.type;
       const endpoint = action === "BUY" ? "/trade/buy" : "/trade/sell";
-      const price = body.price && body.price > 0 ? body.price : 1; // price required by schema
-      return fetchAPI<any>(endpoint, { method: "POST", body: JSON.stringify({ symbol: body.symbol, quantity: body.quantity, price }) }, token);
+      return fetchAPI<any>(endpoint, { method: "POST", body: JSON.stringify({ symbol: body.symbol, quantity: body.quantity }) }, token);
     },
 
     tradeHistory: (token: string, limit = 50, offset = 0) =>

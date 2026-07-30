@@ -33,6 +33,13 @@ const envSchema = z.object({
   REDIS_TLS: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   AWS_REGION: z.string().default('us-east-1'),
   AWS_S3_BUCKET: z.string().min(1, 'AWS_S3_BUCKET is required'),
+  MARKET_DATA_MAX_STALENESS_DAYS: z
+    .string()
+    .default('10')
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => !isNaN(val) && val > 0, {
+      message: 'MARKET_DATA_MAX_STALENESS_DAYS must be a positive number',
+    }),
 });
 
 const result = envSchema.safeParse(process.env);

@@ -10,6 +10,7 @@ import {
   invalidateWalletCache 
 } from '@/services/transaction.service';
 import { invalidateDashboardCache } from '@/services/analytics.service';
+import { getLatestMarketPrice } from '@/services/marketPrice.service';
 
 function checkMarketHours() {
   if (process.env.BYPASS_MARKET_HOURS === 'true') return;
@@ -41,7 +42,9 @@ function checkMarketHours() {
  */
 export async function executeBuy(userId: string, input: TradeInput) {
   checkMarketHours();
-  const { symbol, quantity, price } = input;
+  const { symbol, quantity } = input;
+  const marketPrice = await getLatestMarketPrice(symbol);
+  const price = marketPrice.price;
   const total = quantity * price;
 
   const trade = await prisma.$transaction(async (tx) => {
@@ -113,6 +116,8 @@ export async function executeBuy(userId: string, input: TradeInput) {
     quantity,
     price,
     total,
+    marketDate: marketPrice.marketDate,
+    priceSource: marketPrice.source,
   });
 
   // Invalidate caches
@@ -135,7 +140,9 @@ export async function executeBuy(userId: string, input: TradeInput) {
  */
 export async function executeSell(userId: string, input: TradeInput) {
   checkMarketHours();
-  const { symbol, quantity, price } = input;
+  const { symbol, quantity } = input;
+  const marketPrice = await getLatestMarketPrice(symbol);
+  const price = marketPrice.price;
   const total = quantity * price;
 
   const trade = await prisma.$transaction(async (tx) => {
@@ -217,6 +224,8 @@ export async function executeSell(userId: string, input: TradeInput) {
     quantity,
     price,
     total,
+    marketDate: marketPrice.marketDate,
+    priceSource: marketPrice.source,
     realizedPnl: Number(trade.realizedPnl),
   });
 

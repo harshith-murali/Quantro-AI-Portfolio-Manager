@@ -1,4 +1,4 @@
-import { Prisma, TransactionType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import prisma from '@/config/db';
 import redis from '@/config/redis';
 import { AppError, NotFoundError } from '@/utils/AppError';
@@ -131,18 +131,22 @@ export async function processTradeDebit(
   referenceId: string,
   description: string
 ) {
-  const wallet = await getOrCreateWallet(tx, userId);
+  await getOrCreateWallet(tx, userId);
 
-  if (Number(wallet.balance) < amount) {
-    throw new AppError(`Insufficient wallet balance to execute trade. Required: ${amount}, available: ${wallet.balance}`, 400);
-  }
-
-  await tx.wallet.update({
-    where: { userId },
+  // Atomic conditional debit prevents concurrent BUY requests from overspending.
+  const updated = await tx.wallet.updateMany({
+    where: {
+      userId,
+      balance: { gte: new Prisma.Decimal(amount) },
+    },
     data: {
       balance: { decrement: new Prisma.Decimal(amount) },
     },
   });
+
+  if (updated.count !== 1) {
+    throw new AppError(`Insufficient wallet balance to execute trade. Required: ${amount}`, 400);
+  }
 
   await tx.transaction.create({
     data: {

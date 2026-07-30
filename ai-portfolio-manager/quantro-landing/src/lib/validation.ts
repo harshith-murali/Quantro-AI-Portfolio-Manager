@@ -29,7 +29,6 @@ export const tradeSchema = z.object({
   symbol: z.string().min(1),
   type: z.enum(["BUY", "SELL"]),
   quantity: z.number().int().positive("Quantity must be a positive integer"),
-  price: z.number().positive(),
 });
 
 export const backtestSchema = z.object({
