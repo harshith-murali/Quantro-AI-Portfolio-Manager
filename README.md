@@ -1,252 +1,259 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/Next.js_14-black?style=for-the-badge&logo=next.js&logoColor=white" />
-  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/TailwindCSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
-  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
-  <img src="https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white" />
-  <img src="https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white" />
-  <img src="https://img.shields.io/badge/Recharts-FF6384?style=for-the-badge" />
-</p>
+# Quantro - AI Portfolio Manager
 
-# Quantro — AI Portfolio Manager
+Quantro is a full-stack AI-assisted portfolio manager and paper-trading platform for Indian equities. It combines secure authentication, market-data-backed portfolio valuation, deterministic technical signals, watchlists, backtesting, wallet-based paper trading, and an AI advisor experience in a polished Next.js interface.
 
-> An intelligent, full-stack stock portfolio platform that helps beginner investors understand how much they can safely invest, explore AI-driven stock recommendations, simulate trades, run backtests, and monitor their portfolio — all in a stunning, premium dark-mode interface.
+> Educational/demo project only. Quantro does not provide financial advice, brokerage services, or live trade execution.
 
----
+## Highlights
 
-## Key Features
-
-### Smart Dashboard
-- **Portfolio vs NIFTY 50** real-time comparison chart
-- KPI cards showing total value, P&L, day change, and win rate
-- Sector-wise allocation donut chart
-- Animated search bar with stock suggestions dropdown
-
-### AI Advisor
-- Natural language chat interface powered by AI
-- Personalized investment advice based on risk profile
-- Explains complex signals in simple terms
-
-### Signal Engine
-- AI-generated BUY / HOLD / SELL signals for 50+ NSE stocks
-- Technical indicators: RSI, MACD, SMA crossovers
-- Suitability scoring (0–100) based on user risk profile
-- Per-stock signal detail page with full technical breakdown
-
-### Portfolio Management
-- Real-time portfolio tracking with holdings breakdown
-- **Trade simulation** with interactive Buy/Sell modals
-- **Platform fee**: 0.1% or ₹20 minimum (whichever is higher)
-- Trade history ledger with **Excel (.xlsx) export**
-- Fee transparency — every trade shows subtotal, fee, and total
-
-### AI Watchlist
-- Add stocks for continuous AI monitoring
-- Status indicators: All Clear, Watch, Action Needed
-- AI-generated notes explaining each alert
-- One-click add from search dropdown
-
-### Backtesting Engine
-- SMA Crossover strategy simulation on historical NSE data
-- **5 free backtests**, then ₹49/run premium pricing
-- Equity curve, drawdown chart, monthly returns heatmap
-- Strategy vs Buy & Hold benchmark comparison
-- Full trade table, Sharpe ratio, CAGR, win rate metrics
-
-### Agentic AI Data Pipeline
-- Automated daily workflow executing at 5:30 PM
-- **GitHub Actions** and **AWS Lambda** functions work in tandem to securely orchestrate and fetch end-of-day market data directly from Yahoo Finance
-- Stores raw OHLCV market data securely in **AWS S3**
-- Automatically recalculates portfolio P&L and updates metrics based on the latest closing prices
-
-### Wallet System
-- Virtual wallet with deposit/withdraw functionality
-- Transaction history with running balance
-- Supports trade execution from wallet balance
-
-### Smart Search
-- Global search dropdown in navbar with **45+ Indian stocks**
-- Shows trending stocks by sector on focus
-- Real-time filtering by symbol or company name
-- Day change % indicators on every result
-
----
+- Secure JWT auth with short-lived access tokens and HttpOnly refresh-token cookies
+- Server-authoritative paper-trade execution using backend market data
+- Portfolio valuation engine for holdings, P&L, day change, dashboard analytics, and snapshots
+- Technical signal API powered by OHLCV data, RSI, SMA, EMA, MACD, volume, and price-change indicators
+- Persistent user watchlists with signal enrichment
+- Wallet and transaction ledger for simulated deposits, withdrawals, and trades
+- Authenticated backtest flow with free-tier usage tracking
+- AI advisor surface for explaining portfolio context and investment concepts
+- Daily market-data pipeline designed for GitHub Actions, Yahoo Finance, and AWS S3
+- CI workflow for backend build/tests/Prisma checks and frontend production build
 
 ## Tech Stack
 
-| Layer        | Technology                                              |
-|-------------|--------------------------------------------------------|
-| **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS         |
-| **Charts**   | Recharts (Area, Line, Bar, Pie, Composed)               |
-| **Animations** | Framer Motion, CSS transitions                        |
-| **Backend**  | Node.js, Express, Prisma ORM                            |
-| **Database** | PostgreSQL 18                                           |
-| **Auth**     | JWT (access + refresh tokens), bcrypt                   |
-| **Compute**  | AWS Lambda (Serverless data ingestion)                  |
-| **Storage**  | AWS S3 (Historical Market Data Storage)                 |
-| **Cache**    | Redis (Caching & Rate Limiting, currently mocked)       |
-| **Export**   | SheetJS (xlsx) for Excel report generation              |
-| **State**    | Zustand (with persistence)                              |
+| Area | Technology |
+| --- | --- |
+| Frontend | Next.js 14, React 18, TypeScript, Tailwind CSS |
+| UI/Data Viz | Recharts, Framer Motion, Lightweight Charts, Lucide Icons |
+| Backend | Node.js, Express, TypeScript |
+| Database | PostgreSQL, Prisma ORM |
+| Auth | JWT access tokens, HttpOnly refresh-token cookies, bcrypt |
+| Market Data | Yahoo Finance ingestion, AWS S3 OHLCV storage |
+| AI | Anthropic SDK integration |
+| Cache | Redis via ioredis, with TTL-aware in-memory fallback for local/dev |
+| CI | GitHub Actions |
 
----
+## Architecture
 
-## Project Structure
-
-```
-ai-portfolio-manager/
-├── README.md                    # This file
-├── backend/                     # Express API server
-│   ├── src/
-│   │   ├── server.ts            # App bootstrap & routes
-│   │   ├── routes/              # Auth, portfolio, signals, backtest
-│   │   ├── services/            # Business logic
-│   │   └── middleware/          # JWT auth middleware
-│   ├── prisma/
-│   │   └── schema.prisma        # Database schema
-│   └── .env                     # DB connection & JWT secrets
-├── quantro-landing/             # Next.js frontend
-│   ├── src/
-│   │   ├── app/                 # Pages (App Router)
-│   │   │   ├── dashboard/       # Main dashboard
-│   │   │   ├── signals/         # Signal list + [symbol] detail
-│   │   │   ├── portfolio/       # Portfolio + trade history
-│   │   │   ├── watchlist/       # AI watchlist
-│   │   │   ├── backtest/        # Backtesting engine
-│   │   │   ├── wallet/          # Wallet management
-│   │   │   ├── ai/              # AI advisor chat
-│   │   │   ├── profile/         # User profile
-│   │   │   └── auth/            # Login & register
-│   │   ├── components/          # Shared UI components
-│   │   │   ├── Navbar.tsx       # Global nav with search dropdown
-│   │   │   ├── FeatureShowcase  # Landing page showcase
-│   │   │   └── dashboard/       # Dashboard-specific components
-│   │   └── lib/                 # Utilities
-│   │       ├── api.ts           # API client
-│   │       ├── store.ts         # Zustand state management
-│   │       ├── stockData.ts     # 45+ stock database
-│   │       ├── types.ts         # TypeScript interfaces
-│   │       └── validations.ts   # Zod schemas
-│   └── .env                     # API URL config
+```text
+Quantro-AI-Portfolio-Manager/
+├── README.md
+├── .github/workflows/
+│   ├── ci.yml
+│   └── daily-pipeline.yml
+└── ai-portfolio-manager/
+    ├── backend/
+    │   ├── prisma/
+    │   │   ├── schema.prisma
+    │   │   └── migrations/
+    │   └── src/
+    │       ├── controllers/
+    │       ├── middlewares/
+    │       ├── routes/
+    │       ├── services/
+    │       ├── utils/
+    │       └── validators/
+    └── quantro-landing/
+        └── src/
+            ├── app/
+            ├── components/
+            └── lib/
 ```
 
----
+## Core Domains
+
+### Authentication
+
+Quantro uses access tokens for API authorization and refresh tokens for session renewal. Refresh tokens are delivered through HttpOnly cookies so they are not readable by frontend JavaScript. State-changing requests are protected with origin/referer validation.
+
+### Paper Trading
+
+The frontend submits only the symbol and quantity. The backend validates the symbol, resolves the latest available market price from S3 OHLCV data, and executes the simulated trade against that server-authoritative price. Wallet debits use a balance-guarded atomic update to reduce overspend race risk.
+
+### Portfolio Valuation
+
+Portfolio valuation is centralized in one backend service. Dashboard analytics, portfolio summaries, holdings, sector allocation, top movers, snapshots, realized P&L, unrealized P&L, and data-coverage metadata all flow through the same valuation path.
+
+### Technical Signals
+
+Signals are generated deterministically from OHLCV data instead of static frontend mocks. The signal engine calculates:
+
+- RSI 14
+- SMA 20 / 50 / 200
+- EMA 12 / 26
+- MACD, signal line, and histogram
+- Latest volume and average volume
+- Daily price change
+- Signal rationale and confidence
+
+### Watchlists
+
+Watchlist items are persisted per user through Prisma and enriched with the latest available technical signal data when loaded.
+
+### Backtesting
+
+Backtests require authentication and are tracked per user. The current implementation enforces a free usage limit for successful runs. The simulation engine is functional, but still needs deeper production hardening around look-ahead bias, slippage, transaction costs, integer share sizing, and benchmark rigor.
 
 ## Getting Started
 
 ### Prerequisites
-- **Node.js** ≥ 18
-- **PostgreSQL** ≥ 14
-- **npm** or **yarn**
 
-### 1. Clone the repository
-```bash
-git clone https://github.com/<your-username>/ai-portfolio-manager.git
-cd ai-portfolio-manager
-```
+- Node.js 20+
+- npm
+- PostgreSQL
+- Optional: Redis
+- Optional for market data: AWS S3 bucket and AWS credentials
+- Optional for AI advisor: Anthropic API key
 
-### 2. Setup the database
-```bash
-# Create the database
-psql -U postgres -c "CREATE DATABASE ai_portfolio_db;"
-```
-
-### 3. Configure environment variables
-
-**Backend** (`backend/.env`):
-```env
-DATABASE_URL="postgresql://postgres:1234@localhost:5432/ai_portfolio_db"
-JWT_SECRET="your-jwt-secret"
-JWT_REFRESH_SECRET="your-refresh-secret"
-PORT=3001
-```
-
-**Frontend** (`quantro-landing/.env`):
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
-```
-
-### 4. Install dependencies & start
+### Clone
 
 ```bash
-# Backend
-cd backend
+git clone https://github.com/harshith-murali/Quantro-AI-Portfolio-Manager.git
+cd Quantro-AI-Portfolio-Manager
+```
+
+### Backend Setup
+
+```bash
+cd ai-portfolio-manager/backend
 npm install
+cp .env.example .env
 npx prisma migrate dev
-npm run dev
-
-# Frontend (new terminal)
-cd quantro-landing
-npm install
+npx prisma generate
 npm run dev
 ```
 
-### 5. Open the app
-Navigate to **http://localhost:3000** and register a new account.
+The backend runs on `http://localhost:8080` by default.
 
----
+### Frontend Setup
 
-## API Endpoints
+In a second terminal:
 
-| Method | Endpoint                  | Description                        | Auth |
-|--------|---------------------------|------------------------------------|------|
-| POST   | `/api/auth/register`       | Create new user account            | No   |
-| POST   | `/api/auth/login`          | Login & get tokens                 | No   |
-| POST   | `/api/auth/refresh`        | Refresh access token               | Yes  |
-| GET    | `/api/auth/me`             | Get current user profile           | Yes  |
-| POST   | `/api/auth/logout`         | Invalidate tokens                  | Yes  |
-| GET    | `/api/signals`             | Get AI stock signals               | Yes  |
-| GET    | `/api/signals/:symbol`     | Get detailed signal for a stock    | Yes  |
-| GET    | `/api/portfolio`           | Get portfolio snapshot             | Yes  |
-| POST   | `/api/portfolio/trade`     | Execute a trade (buy/sell)         | Yes  |
-| POST   | `/api/backtest`            | Run a backtest simulation          | Yes  |
-| GET    | `/api/wallet`              | Get wallet balance & transactions  | Yes  |
-| POST   | `/api/wallet/deposit`      | Add funds to wallet                | Yes  |
-| POST   | `/api/wallet/withdraw`     | Withdraw funds from wallet         | Yes  |
+```bash
+cd ai-portfolio-manager/quantro-landing
+npm install
+cp .env.example .env.local
+npm run dev
+```
 
----
+The frontend runs on `http://localhost:3000` by default.
 
-## Design Principles
+## Environment Variables
 
-- **Frontend-first**: Built to look & feel like a real product, not a school project
-- **Dark mode only**: High-contrast, premium quantro aesthetic with gold accents
-- **Glass morphism**: Frosted glass panels with subtle borders and backdrop blur
-- **Micro-animations**: Framer Motion for smooth page transitions and interactive feedback
-- **Data-dense**: Professional-grade charts and tables that show real metrics
-- **Mobile-responsive**: Adaptive layouts for all screen sizes
+Backend `.env`:
 
----
+```env
+NODE_ENV=development
+PORT=8080
+DATABASE_URL="postgresql://quantro_user:quantro_password@localhost:5432/quantro_db?schema=public"
+ACCESS_TOKEN_SECRET=replace-with-32-plus-char-secret
+REFRESH_TOKEN_SECRET=replace-with-different-32-plus-char-secret
+ACCESS_TOKEN_EXPIRY=15m
+REFRESH_TOKEN_EXPIRY=7d
+CORS_ORIGIN=http://localhost:3000
+BCRYPT_ROUNDS=12
 
-## Security
+# Optional Redis
+REDIS_URL=redis://localhost:6379
 
-- JWT-based authentication with access + refresh token rotation
-- Passwords hashed with bcrypt (12 rounds)
-- Protected API routes via middleware
-- HTTP-only considerations for production deployment
+# Market data
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-market-data-bucket
+MARKET_DATA_MAX_STALENESS_DAYS=10
 
----
+# AI advisor
+ANTHROPIC_API_KEY=
+```
+
+Frontend `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080/api
+```
+
+## Useful Commands
+
+Backend:
+
+```bash
+cd ai-portfolio-manager/backend
+npm run dev
+npm run build
+npm test
+npx prisma format --check
+npx prisma validate
+npx prisma migrate dev
+npm run pipeline
+npm run pipeline:force
+```
+
+Frontend:
+
+```bash
+cd ai-portfolio-manager/quantro-landing
+npm run dev
+npm run build
+```
+
+## API Surface
+
+| Area | Endpoints |
+| --- | --- |
+| Auth | `/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`, `/api/auth/me` |
+| Financial profile | `/api/financial-profile`, `/api/financial-profile/me` |
+| Portfolio | `/api/portfolio`, `/api/portfolio/summary`, `/api/portfolio/history`, `/api/holdings`, `/api/holdings/:symbol` |
+| Trades | `/api/trade/buy`, `/api/trade/sell`, `/api/trade/history` |
+| Analytics | `/api/dashboard/*` |
+| Signals | `/api/signals`, `/api/signals/:symbol` |
+| Watchlist | `/api/watchlist` |
+| Backtest | `/api/backtest` |
+| Wallet | `/api/wallet/balance`, `/api/wallet/deposit`, `/api/wallet/withdraw`, `/api/transactions` |
+| Health | `/api/health` |
+
+Most application endpoints require a bearer access token. Refresh uses the HttpOnly refresh cookie.
+
+## Database Changes
+
+Recent production-readiness work added:
+
+- `WatchlistItem` for persisted user watchlists
+- `BacktestExecution` and `BacktestStatus` for authenticated usage tracking
+- Portfolio, wallet, transaction, trade, insight, and summary models for the core app domain
+
+For deployment:
+
+```bash
+cd ai-portfolio-manager/backend
+npx prisma migrate deploy
+npx prisma generate
+```
+
+## Validation
+
+Current branch validation:
+
+```bash
+cd ai-portfolio-manager/backend
+npx prisma format --check
+npx prisma validate
+npm run build
+npm test
+
+cd ../quantro-landing
+npm run build
+```
+
+## Resume-Friendly Summary
+
+Built and hardened a full-stack AI portfolio-management platform with secure cookie-based refresh-token auth, server-authoritative paper-trading execution, market-data-backed portfolio valuation, deterministic technical signals, persisted watchlists, authenticated backtest usage tracking, Redis cache fallback, CI, and backend test coverage.
 
 ## Roadmap
 
-- [x] Dashboard with portfolio vs NIFTY chart
-- [x] AI signal engine with technical indicators
-- [x] Trade simulation with platform fees
-- [x] Backtesting with freemium pricing
-- [x] Excel ledger export
-- [x] AI Watchlist with monitoring alerts
-- [x] Smart search dropdown with 45+ stocks
-- [ ] Real-time WebSocket price updates
-- [ ] Options chain analysis
-- [ ] Multi-strategy backtesting
-- [ ] Push notifications for watchlist alerts
-
----
+- Add deeper backtest correctness: look-ahead protection, slippage, transaction costs, integer shares, and benchmark validation
+- Ground AI advisor responses with stricter schemas, citations, and safer financial disclaimers
+- Add integration tests for auth, trades, watchlists, backtests, and portfolio valuation
+- Add frontend component and E2E tests
+- Improve market-data observability and stale-data alerting
+- Add dependency security upgrades and vulnerability triage
 
 ## License
 
-This project is built for educational and demonstration purposes.
-
----
-
-<p align="center">
-  <sub>Built for the AI Portfolio Hackathon</sub>
-</p>
+This project is for educational and demonstration purposes.
