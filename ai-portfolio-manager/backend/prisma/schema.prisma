@@ -35,6 +35,7 @@ model User {
   insightLogs      InsightLog[]
   portfolioSummary PortfolioSummary?
   watchlistItems   WatchlistItem[]
+  backtestExecutions BacktestExecution[]
 
   @@index([email])
   @@map("users")
@@ -51,6 +52,27 @@ model WatchlistItem {
   @@index([userId])
   @@index([symbol])
   @@map("watchlist_items")
+}
+
+enum BacktestStatus {
+  SUCCESS
+  FAILED
+}
+
+model BacktestExecution {
+  id             String         @id @default(cuid())
+  userId         String         @map("user_id")
+  symbol         String         @db.VarChar(20)
+  shortWindow    Int            @map("short_window")
+  longWindow     Int            @map("long_window")
+  initialCapital Decimal        @map("initial_capital") @db.Decimal(15, 2)
+  status         BacktestStatus
+  createdAt      DateTime       @default(now()) @map("created_at")
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("backtest_executions")
 }
 
 model RefreshToken {
