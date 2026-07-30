@@ -23,6 +23,24 @@ services:
         value: 7d
       - key: REFRESH_COOKIE_SAMESITE
         value: none
+      - key: EMAIL_VERIFICATION_ENABLED
+        value: "false"
+      - key: EMAIL_OTP_EXPIRY_MINUTES
+        value: "10"
+      - key: EMAIL_OTP_RESEND_COOLDOWN_SECONDS
+        value: "60"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
       - key: CORS_ORIGIN
         sync: false
       - key: BCRYPT_ROUNDS

@@ -68,10 +68,16 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
 export const api = {
   auth: {
     register: (body: { name: string; email: string; password: string }) =>
-      fetchAPI<{ user: any; accessToken: string }>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
+      fetchAPI<{ user: any; accessToken: string; emailVerificationRequired?: boolean }>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
 
     login: (body: { email: string; password: string }) =>
       fetchAPI<{ user: any; accessToken: string }>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+
+    verifyEmail: (body: { email: string; otp: string }) =>
+      fetchAPI<{ verified: boolean }>("/auth/verify-email", { method: "POST", body: JSON.stringify(body) }),
+
+    resendVerification: (body: { email: string }) =>
+      fetchAPI<{ sent: boolean }>("/auth/resend-verification", { method: "POST", body: JSON.stringify(body) }),
 
     me: (token: string) =>
       fetchAPI<{ user: any }>("/auth/me", {}, token),

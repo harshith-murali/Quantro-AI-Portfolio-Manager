@@ -32,6 +32,7 @@ export async function verifyAccessTokenMiddleware(
         id: true,
         name: true,
         email: true,
+        emailVerified: true,
         role: true,
         tokenVersion: true,
         createdAt: true,

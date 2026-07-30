@@ -12,6 +12,11 @@ export const registerSchema = loginSchema.extend({
   path: ["confirmPassword"],
 });
 
+export const verifyEmailSchema = z.object({
+  email: z.string().email("Enter a valid email"),
+  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+
 export const profileSchema = z.object({
   monthlyIncome: z.number().min(1000, "Minimum income is ₹1,000"),
   fixedExpenses: z.number().min(0),
@@ -49,6 +54,7 @@ export const backtestSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type ProfileInput = z.infer<typeof profileSchema>;
 export type TradeInput = z.infer<typeof tradeSchema>;
 export type BacktestInput = z.infer<typeof backtestSchema>;

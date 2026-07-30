@@ -26,14 +26,18 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterInput) => {
     setServerError("");
     try {
-      const { user, accessToken } = await api.auth.register({
+      const { user, accessToken, emailVerificationRequired } = await api.auth.register({
         name: data.name,
         email: data.email,
         password: data.password,
       });
       useStore.getState().setAccessToken(accessToken);
       setUser(user);
-      router.push("/auth/onboarding");
+      router.push(
+        emailVerificationRequired
+          ? `/auth/verify-email?email=${encodeURIComponent(user.email)}`
+          : "/auth/onboarding",
+      );
     } catch (e: any) {
       setServerError(e.message ?? "Registration failed. Try a different email.");
     }

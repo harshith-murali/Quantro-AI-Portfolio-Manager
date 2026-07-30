@@ -8,6 +8,7 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
+  emailVerified?: boolean;
   monthlyIncome?: number;
   monthlyExpenses?: number;
   currentSavings?: number;

@@ -53,8 +53,25 @@ export async function register(req: Request, res: Response): Promise<void> {
     successResponse('Account created successfully', {
       user: result.user,
       accessToken: result.accessToken,
+      emailVerificationRequired: result.emailVerificationRequired,
     }),
   );
+}
+
+/**
+ * POST /api/auth/verify-email
+ */
+export async function verifyEmail(req: Request, res: Response): Promise<void> {
+  const result = await AuthService.verifyEmail(req.body);
+  res.status(200).json(successResponse('Email verified successfully', result));
+}
+
+/**
+ * POST /api/auth/resend-verification
+ */
+export async function resendVerification(req: Request, res: Response): Promise<void> {
+  const result = await AuthService.resendVerification(req.body);
+  res.status(200).json(successResponse('Verification code sent', result));
 }
 
 /**

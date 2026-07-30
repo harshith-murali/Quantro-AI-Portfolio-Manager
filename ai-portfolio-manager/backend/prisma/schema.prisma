@@ -19,6 +19,10 @@ model User {
   id                 String              @id @default(cuid())
   name               String
   email              String              @unique
+  emailVerified      Boolean             @default(false) @map("email_verified")
+  emailOtpHash       String?             @map("email_otp_hash")
+  emailOtpExpiresAt  DateTime?           @map("email_otp_expires_at")
+  emailOtpLastSentAt DateTime?           @map("email_otp_last_sent_at")
   hashedPassword     String
   role               Role                @default(USER)
   /// Incremented on logout to invalidate all outstanding refresh tokens

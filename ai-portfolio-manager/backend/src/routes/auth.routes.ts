@@ -17,6 +17,20 @@ router.use(authRateLimiter);
 router.post('/register', asyncHandler(AuthController.register));
 
 /**
+ * @route   POST /api/auth/verify-email
+ * @desc    Verify a newly registered user's email with a 6-digit OTP
+ * @access  Public
+ */
+router.post('/verify-email', asyncHandler(AuthController.verifyEmail));
+
+/**
+ * @route   POST /api/auth/resend-verification
+ * @desc    Resend a verification OTP
+ * @access  Public
+ */
+router.post('/resend-verification', asyncHandler(AuthController.resendVerification));
+
+/**
  * @route   POST /api/auth/login
  * @desc    Authenticate user and issue token pair
  * @access  Public

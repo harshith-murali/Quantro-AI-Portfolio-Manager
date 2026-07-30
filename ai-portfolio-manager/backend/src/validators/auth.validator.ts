@@ -39,7 +39,31 @@ export const loginSchema = z.object({
     .min(1, 'Password is required'),
 });
 
+// ─── Email verification ──────────────────────────────────────────
+
+export const verifyEmailSchema = z.object({
+  email: z
+    .string({ required_error: 'Email is required' })
+    .trim()
+    .toLowerCase()
+    .email('Please provide a valid email address'),
+  otp: z
+    .string({ required_error: 'Verification code is required' })
+    .trim()
+    .regex(/^\d{6}$/, 'Verification code must be 6 digits'),
+});
+
+export const resendVerificationSchema = z.object({
+  email: z
+    .string({ required_error: 'Email is required' })
+    .trim()
+    .toLowerCase()
+    .email('Please provide a valid email address'),
+});
+
 // ─── Inferred types ───────────────────────────────────────────────
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;

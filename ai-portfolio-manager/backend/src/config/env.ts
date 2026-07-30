@@ -20,6 +20,27 @@ const envSchema = z.object({
   ACCESS_TOKEN_EXPIRY: z.string().default('15m'),
   REFRESH_TOKEN_EXPIRY: z.string().default('7d'),
   REFRESH_COOKIE_SAMESITE: z.enum(['strict', 'lax', 'none']).default('lax'),
+  EMAIL_VERIFICATION_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  EMAIL_OTP_EXPIRY_MINUTES: z
+    .string()
+    .default('10')
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => !isNaN(val) && val > 0, {
+      message: 'EMAIL_OTP_EXPIRY_MINUTES must be a positive number',
+    }),
+  EMAIL_OTP_RESEND_COOLDOWN_SECONDS: z
+    .string()
+    .default('60')
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => !isNaN(val) && val > 0, {
+      message: 'EMAIL_OTP_RESEND_COOLDOWN_SECONDS must be a positive number',
+    }),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().default('587').transform(Number),
+  SMTP_SECURE: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   BCRYPT_ROUNDS: z
     .string()

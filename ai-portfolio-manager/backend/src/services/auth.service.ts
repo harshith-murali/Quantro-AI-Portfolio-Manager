@@ -1,4 +1,5 @@
 import prisma from '@/config/db';
+import crypto from 'crypto';
 import { hashPassword, comparePassword } from '@/utils/hash';
 import { generateTokenPair, verifyRefreshToken } from '@/utils/jwt';
 import {
@@ -8,18 +9,64 @@ import {
   validateRefreshTokenRecord,
   cleanupUserTokens,
 } from '@/services/token.service';
-import { AuthError, ConflictError } from '@/utils/AppError';
+import { AppError, AuthError, ConflictError } from '@/utils/AppError';
 import { authLogger } from '@/utils/logger';
-import { registerSchema, loginSchema } from '@/validators/auth.validator';
-import type { RegisterInput, LoginInput } from '@/validators/auth.validator';
-import type { AuthResponse, AuthUser } from '@/types/auth.types';
+import { env } from '@/config/env';
+import { sendVerificationOtp } from '@/services/email.service';
+import {
+  registerSchema,
+  loginSchema,
+  verifyEmailSchema,
+  resendVerificationSchema,
+} from '@/validators/auth.validator';
+import type {
+  RegisterInput,
+  LoginInput,
+  VerifyEmailInput,
+  ResendVerificationInput,
+} from '@/validators/auth.validator';
+import type { AuthUser } from '@/types/auth.types';
+
+function generateOtp(): string {
+  return crypto.randomInt(100000, 1_000_000).toString();
+}
+
+function hashOtp(email: string, otp: string): string {
+  return crypto
+    .createHmac('sha256', env.REFRESH_TOKEN_SECRET)
+    .update(`${email}:${otp}`)
+    .digest('hex');
+}
+
+function otpMatches(email: string, otp: string, expectedHash: string): boolean {
+  const actual = Buffer.from(hashOtp(email, otp), 'hex');
+  const expected = Buffer.from(expectedHash, 'hex');
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+
+async function createAndSendVerificationOtp(user: { id: string; email: string; name: string }): Promise<void> {
+  if (!env.EMAIL_VERIFICATION_ENABLED) return;
+
+  const otp = generateOtp();
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerified: false,
+      emailOtpHash: hashOtp(user.email, otp),
+      emailOtpExpiresAt: new Date(Date.now() + env.EMAIL_OTP_EXPIRY_MINUTES * 60 * 1000),
+      emailOtpLastSentAt: new Date(),
+    },
+  });
+
+  await sendVerificationOtp(user.email, user.name, otp);
+}
 
 // ─── Register ─────────────────────────────────────────────────────
 
 export async function register(
   input: RegisterInput,
   ip: string,
-): Promise<{ user: Omit<AuthUser, 'tokenVersion'>; accessToken: string }> {
+): Promise<{ user: Omit<AuthUser, 'tokenVersion'>; accessToken: string; emailVerificationRequired: boolean }> {
   // Validate input
   const data = registerSchema.parse(input);
 
@@ -35,6 +82,7 @@ export async function register(
     data: {
       name: data.name,
       email: data.email,
+      emailVerified: !env.EMAIL_VERIFICATION_ENABLED,
       hashedPassword,
     },
     select: {
@@ -42,6 +90,7 @@ export async function register(
       name: true,
       email: true,
       role: true,
+      emailVerified: true,
       tokenVersion: true,
       createdAt: true,
     },
@@ -49,6 +98,7 @@ export async function register(
 
   const tokens = generateTokenPair(user.id, user.role, user.tokenVersion);
   await createRefreshToken(user.id, tokens.refreshToken);
+  await createAndSendVerificationOtp(user);
 
   authLogger.register(user.email, user.id);
 
@@ -58,9 +108,11 @@ export async function register(
       name: user.name,
       email: user.email,
       role: user.role,
+      emailVerified: user.emailVerified,
       createdAt: user.createdAt,
     },
     accessToken: tokens.accessToken,
+    emailVerificationRequired: env.EMAIL_VERIFICATION_ENABLED && !user.emailVerified,
     // refreshToken is set as HttpOnly cookie in the controller
   };
 }
@@ -68,7 +120,12 @@ export async function register(
 export async function registerGetRefreshToken(
   input: RegisterInput,
   ip: string,
-): Promise<{ user: Omit<AuthUser, 'tokenVersion'>; accessToken: string; refreshToken: string }> {
+): Promise<{
+  user: Omit<AuthUser, 'tokenVersion'>;
+  accessToken: string;
+  refreshToken: string;
+  emailVerificationRequired: boolean;
+}> {
   const data = registerSchema.parse(input);
 
   const existing = await prisma.user.findUnique({ where: { email: data.email } });
@@ -79,19 +136,41 @@ export async function registerGetRefreshToken(
   const hashedPassword = await hashPassword(data.password);
 
   const user = await prisma.user.create({
-    data: { name: data.name, email: data.email, hashedPassword },
-    select: { id: true, name: true, email: true, role: true, tokenVersion: true, createdAt: true },
+    data: {
+      name: data.name,
+      email: data.email,
+      emailVerified: !env.EMAIL_VERIFICATION_ENABLED,
+      hashedPassword,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      emailVerified: true,
+      tokenVersion: true,
+      createdAt: true,
+    },
   });
 
   const tokens = generateTokenPair(user.id, user.role, user.tokenVersion);
   await createRefreshToken(user.id, tokens.refreshToken);
+  await createAndSendVerificationOtp(user);
 
   authLogger.register(user.email, user.id);
 
   return {
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+    },
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
+    emailVerificationRequired: env.EMAIL_VERIFICATION_ENABLED && !user.emailVerified,
   };
 }
 
@@ -110,6 +189,7 @@ export async function login(
       name: true,
       email: true,
       role: true,
+      emailVerified: true,
       hashedPassword: true,
       tokenVersion: true,
       createdAt: true,
@@ -129,6 +209,10 @@ export async function login(
     throw new AuthError('Invalid email or password');
   }
 
+  if (env.EMAIL_VERIFICATION_ENABLED && !user.emailVerified) {
+    throw new AuthError('Please verify your email before signing in');
+  }
+
   // Cleanup stale tokens before creating a new one
   await cleanupUserTokens(user.id);
 
@@ -138,10 +222,92 @@ export async function login(
   authLogger.login(user.email, user.id, ip);
 
   return {
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+    },
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
   };
+}
+
+// ─── Email verification ──────────────────────────────────────────
+
+export async function verifyEmail(input: VerifyEmailInput): Promise<{ verified: boolean }> {
+  const data = verifyEmailSchema.parse(input);
+
+  const user = await prisma.user.findUnique({
+    where: { email: data.email },
+    select: {
+      id: true,
+      email: true,
+      emailVerified: true,
+      emailOtpHash: true,
+      emailOtpExpiresAt: true,
+    },
+  });
+
+  if (!user) {
+    throw new AuthError('Invalid or expired verification code');
+  }
+
+  if (user.emailVerified) {
+    return { verified: true };
+  }
+
+  if (!user.emailOtpHash || !user.emailOtpExpiresAt || user.emailOtpExpiresAt <= new Date()) {
+    throw new AuthError('Invalid or expired verification code');
+  }
+
+  if (!otpMatches(user.email, data.otp, user.emailOtpHash)) {
+    throw new AuthError('Invalid or expired verification code');
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerified: true,
+      emailOtpHash: null,
+      emailOtpExpiresAt: null,
+      emailOtpLastSentAt: null,
+    },
+  });
+
+  return { verified: true };
+}
+
+export async function resendVerification(input: ResendVerificationInput): Promise<{ sent: boolean }> {
+  const data = resendVerificationSchema.parse(input);
+
+  const user = await prisma.user.findUnique({
+    where: { email: data.email },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      emailVerified: true,
+      emailOtpLastSentAt: true,
+    },
+  });
+
+  if (!user || user.emailVerified) {
+    return { sent: true };
+  }
+
+  if (user.emailOtpLastSentAt) {
+    const elapsedMs = Date.now() - user.emailOtpLastSentAt.getTime();
+    const cooldownMs = env.EMAIL_OTP_RESEND_COOLDOWN_SECONDS * 1000;
+    if (elapsedMs < cooldownMs) {
+      throw new AppError('Please wait before requesting another code', 429);
+    }
+  }
+
+  await createAndSendVerificationOtp(user);
+  return { sent: true };
 }
 
 // ─── Logout ───────────────────────────────────────────────────────
@@ -200,6 +366,7 @@ export async function getMe(userId: string): Promise<Omit<AuthUser, 'tokenVersio
       name: true,
       email: true,
       role: true,
+      emailVerified: true,
       createdAt: true,
     },
   });
