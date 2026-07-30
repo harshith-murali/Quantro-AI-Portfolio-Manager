@@ -10,7 +10,7 @@ import {
   cleanupUserTokens,
 } from '@/services/token.service';
 import { AppError, AuthError, ConflictError } from '@/utils/AppError';
-import { authLogger } from '@/utils/logger';
+import { authLogger, logger } from '@/utils/logger';
 import { env } from '@/config/env';
 import { sendVerificationOtp } from '@/services/email.service';
 import {
@@ -61,6 +61,14 @@ async function createAndSendVerificationOtp(user: { id: string; email: string; n
   await sendVerificationOtp(user.email, user.name, otp);
 }
 
+async function cleanupFailedRegistration(userId: string): Promise<void> {
+  try {
+    await prisma.user.delete({ where: { id: userId } });
+  } catch (error) {
+    logger.warn('Failed to clean up user after registration email failure', { userId, error });
+  }
+}
+
 // ─── Register ─────────────────────────────────────────────────────
 
 export async function register(
@@ -98,7 +106,12 @@ export async function register(
 
   const tokens = generateTokenPair(user.id, user.role, user.tokenVersion);
   await createRefreshToken(user.id, tokens.refreshToken);
-  await createAndSendVerificationOtp(user);
+  try {
+    await createAndSendVerificationOtp(user);
+  } catch (error) {
+    await cleanupFailedRegistration(user.id);
+    throw error;
+  }
 
   authLogger.register(user.email, user.id);
 
@@ -155,7 +168,12 @@ export async function registerGetRefreshToken(
 
   const tokens = generateTokenPair(user.id, user.role, user.tokenVersion);
   await createRefreshToken(user.id, tokens.refreshToken);
-  await createAndSendVerificationOtp(user);
+  try {
+    await createAndSendVerificationOtp(user);
+  } catch (error) {
+    await cleanupFailedRegistration(user.id);
+    throw error;
+  }
 
   authLogger.register(user.email, user.id);
 

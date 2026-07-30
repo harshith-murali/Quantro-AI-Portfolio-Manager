@@ -26,30 +26,38 @@ export async function sendVerificationOtp(email: string, name: string, otp: stri
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
     auth: {
       user: env.SMTP_USER,
       pass: env.SMTP_PASS,
     },
   });
 
-  await transporter.sendMail({
-    from: env.SMTP_FROM,
-    to: email,
-    subject: 'Verify your Quantro account',
-    text: `Hi ${name},\n\nYour Quantro verification code is ${otp}.\n\nThis code expires in ${env.EMAIL_OTP_EXPIRY_MINUTES} minutes.\n\nIf you did not create this account, you can ignore this email.`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #111827;">
-        <h2 style="margin-bottom: 12px;">Verify your Quantro account</h2>
-        <p>Hi ${safeName},</p>
-        <p>Use this one-time code to verify your email address:</p>
-        <div style="font-size: 32px; letter-spacing: 8px; font-weight: 700; margin: 24px 0; padding: 18px 24px; background: #f3f4f6; border-radius: 10px; text-align: center;">
-          ${otp}
+  try {
+    await transporter.sendMail({
+      from: env.SMTP_FROM,
+      to: email,
+      subject: 'Verify your Quantro account',
+      text: `Hi ${name},\n\nYour Quantro verification code is ${otp}.\n\nThis code expires in ${env.EMAIL_OTP_EXPIRY_MINUTES} minutes.\n\nIf you did not create this account, you can ignore this email.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #111827;">
+          <h2 style="margin-bottom: 12px;">Verify your Quantro account</h2>
+          <p>Hi ${safeName},</p>
+          <p>Use this one-time code to verify your email address:</p>
+          <div style="font-size: 32px; letter-spacing: 8px; font-weight: 700; margin: 24px 0; padding: 18px 24px; background: #f3f4f6; border-radius: 10px; text-align: center;">
+            ${otp}
+          </div>
+          <p>This code expires in ${env.EMAIL_OTP_EXPIRY_MINUTES} minutes.</p>
+          <p style="color: #6b7280; font-size: 13px;">If you did not create this account, you can ignore this email.</p>
         </div>
-        <p>This code expires in ${env.EMAIL_OTP_EXPIRY_MINUTES} minutes.</p>
-        <p style="color: #6b7280; font-size: 13px;">If you did not create this account, you can ignore this email.</p>
-      </div>
-    `,
-  });
+      `,
+    });
+  } catch (error) {
+    logger.error('Failed to send verification OTP email', { email, error });
+    throw new AppError('Unable to send verification email. Please try again shortly.', 503);
+  }
 
   logger.info('Verification OTP email sent', { email });
 }
