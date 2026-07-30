@@ -35,6 +35,18 @@ jobs:
         working-directory: ./ai-portfolio-manager/backend
         run: npx prisma generate
 
+      - name: Validate Prisma schema
+        working-directory: ./ai-portfolio-manager/backend
+        run: npx prisma validate
+
+      - name: Build backend
+        working-directory: ./ai-portfolio-manager/backend
+        run: npm run build
+
+      - name: Run backend tests
+        working-directory: ./ai-portfolio-manager/backend
+        run: npm test
+
       - name: Run Pipeline
         working-directory: ./ai-portfolio-manager/backend
         env:
