@@ -1,6 +1,11 @@
 import { useStore } from "./store";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+const DEFAULT_API_URL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:8080/api"
+    : "https://quantro-api-biwp.onrender.com/api";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL;
 
 async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const headers: HeadersInit = {
