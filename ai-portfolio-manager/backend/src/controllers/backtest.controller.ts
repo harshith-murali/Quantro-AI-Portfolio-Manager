@@ -1,12 +1,18 @@
 import { Request, Response } from 'express';
 import { runBacktest, BacktestParams } from '@/services/backtest.service';
+import prisma from '@/config/db';
+import { Prisma } from '@prisma/client';
+import { AppError } from '@/utils/AppError';
+import { successResponse } from '@/utils/ApiResponse';
+import { logger } from '@/utils/logger';
+
+const FREE_BACKTEST_LIMIT = 5;
 
 export async function executeBacktest(req: Request, res: Response) {
   const symbol = req.query.symbol as string;
   
   if (!symbol) {
-    res.status(400).json({ success: false, error: 'Symbol parameter is required' });
-    return;
+    throw new AppError('Symbol parameter is required', 400);
   }
 
   const shortWindow = req.query.shortWindow ? parseInt(req.query.shortWindow as string, 10) : 20;
@@ -16,13 +22,18 @@ export async function executeBacktest(req: Request, res: Response) {
   const endDate = req.query.endDate as string | undefined;
 
   if (isNaN(shortWindow) || isNaN(longWindow) || isNaN(initialCapital)) {
-    res.status(400).json({ success: false, error: 'Numeric parameters must be valid numbers' });
-    return;
+    throw new AppError('Numeric parameters must be valid numbers', 400);
   }
 
   if (shortWindow >= longWindow) {
-    res.status(400).json({ success: false, error: 'shortWindow must be less than longWindow' });
-    return;
+    throw new AppError('shortWindow must be less than longWindow', 400);
+  }
+
+  const successfulRuns = await prisma.backtestExecution.count({
+    where: { userId: req.user!.id, status: 'SUCCESS' },
+  });
+  if (successfulRuns >= FREE_BACKTEST_LIMIT) {
+    throw new AppError('Free backtest limit reached. Billing is not implemented in this educational version.', 402);
   }
 
   const params: BacktestParams = {
@@ -38,13 +49,30 @@ export async function executeBacktest(req: Request, res: Response) {
     const result = await runBacktest(params);
 
     if (result.error) {
-      res.status(result.status || 500).json({ success: false, error: result.error });
-      return;
+      throw new AppError(result.error, result.status || 500);
     }
 
-    res.status(200).json(result);
+    await prisma.backtestExecution.create({
+      data: {
+        userId: req.user!.id,
+        symbol,
+        shortWindow,
+        longWindow,
+        initialCapital: new Prisma.Decimal(initialCapital),
+        status: 'SUCCESS',
+      },
+    });
+
+    res.status(200).json(successResponse('Backtest executed successfully', {
+      ...result,
+      usage: {
+        successfulRuns: successfulRuns + 1,
+        freeLimit: FREE_BACKTEST_LIMIT,
+        billingImplemented: false,
+      },
+    }));
   } catch (error) {
-    console.error('Backtest Controller Error:', error);
-    res.status(500).json({ success: false, error: 'Unexpected backtest execution failure' });
+    logger.error('Backtest execution failed', { error, userId: req.user?.id, symbol });
+    throw error;
   }
 }

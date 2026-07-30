@@ -17,23 +17,16 @@ import {
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { searchStocks, STOCK_DATABASE, type StockInfo } from "@/lib/stockData";
-import { Star } from "lucide-react";
 
 interface WatchlistStock {
   symbol: string;
   addedAt: string;
-  currentPrice: number;
-  changePercent: number;
+  currentPrice: number | null;
+  changePercent: number | null;
   aiStatus: "OK" | "WARNING" | "ALERT";
   aiNote: string;
   sector: string;
 }
-
-const MOCK_WATCHLIST: WatchlistStock[] = [
-  { symbol: "RELIANCE", addedAt: "2024-05-10", currentPrice: 2845.50, changePercent: -1.2, aiStatus: "OK", aiNote: "Solid support at 2800. Fundamentals remain strong.", sector: "Energy" },
-  { symbol: "TCS",      addedAt: "2024-05-12", currentPrice: 3920.00, changePercent: 0.5,  aiStatus: "WARNING", aiNote: "Approaching supply zone. Potential for minor correction.", sector: "IT" },
-  { symbol: "ZOMATO",   addedAt: "2024-05-14", currentPrice: 154.20,  changePercent: 3.2,  aiStatus: "ALERT", aiNote: "Volume breakout detected. Bullish momentum acceleration.", sector: "FMCG" },
-];
 
 const STATUS_STYLES = {
   OK: {
@@ -64,44 +57,56 @@ const STATUS_STYLES = {
 
 export default function WatchlistPage() {
   const router = useRouter();
-  const { accessToken, watchlist: storeWatchlist, toggleWatchlist } = useStore();
+  const { accessToken } = useStore();
   const [watchlist, setWatchlist] = useState<WatchlistStock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [addSymbol, setAddSymbol] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState<"ALL" | "OK" | "WARNING" | "ALERT">("ALL");
 
   useEffect(() => {
     if (!accessToken) { router.push("/auth/login"); return; }
-    setTimeout(() => {
-      // Merge MOCK_WATCHLIST with any symbols added via the signals page
-      const storeSymbols = storeWatchlist.filter(
-        (sym) => !MOCK_WATCHLIST.find((m) => m.symbol === sym)
-      );
-      const extra: WatchlistStock[] = storeSymbols.map((sym) => {
-        const info = STOCK_DATABASE.find((s) => s.symbol === sym);
-        return {
-          symbol: sym,
-          addedAt: new Date().toISOString().split("T")[0],
-          currentPrice: info?.price ?? 1000 + Math.random() * 3000,
-          changePercent: info?.changePct ?? (Math.random() - 0.5) * 6,
-          aiStatus: "OK" as const,
-          aiNote: `AI is now monitoring ${sym}. Initial analysis will be ready shortly.`,
-          sector: info?.sector ?? "Other",
-        };
-      });
-      setWatchlist([...MOCK_WATCHLIST, ...extra]);
-      setLoading(false);
-    }, 600);
-  }, [accessToken, storeWatchlist]);
+    fetchWatchlist(accessToken);
+  }, [accessToken]);
 
-  const removeFromWatchlist = (symbol: string) => {
-    setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol));
-    // If the symbol is in the global store watchlist, remove it there too
-    if (storeWatchlist.includes(symbol)) toggleWatchlist(symbol);
+  const mapItem = (item: any): WatchlistStock => {
+    const info = STOCK_DATABASE.find((s) => s.symbol === item.symbol);
+    const signal = item.signal;
+    const status: WatchlistStock["aiStatus"] =
+      signal?.signal === "SELL" ? "ALERT" : signal?.signal === "HOLD" ? "WARNING" : "OK";
+    return {
+      symbol: item.symbol,
+      addedAt: item.createdAt?.split("T")[0] ?? "",
+      currentPrice: signal?.currentPrice ?? null,
+      changePercent: signal?.changePercent ?? null,
+      aiStatus: status,
+      aiNote: signal?.rationale ?? "Market data is not available for this symbol yet.",
+      sector: info?.sector ?? "Other",
+    };
   };
 
-  const addToWatchlist = (sym?: string) => {
+  const fetchWatchlist = async (token: string) => {
+    setError("");
+    setLoading(true);
+    try {
+      const result = await api.watchlist.list(token);
+      setWatchlist((result.items ?? []).map(mapItem));
+    } catch (e: any) {
+      setError(e?.message ?? "Unable to load watchlist.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeFromWatchlist = async (symbol: string) => {
+    if (!accessToken) return;
+    await api.watchlist.remove(symbol, accessToken);
+    setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol));
+  };
+
+  const addToWatchlist = async (sym?: string) => {
+    if (!accessToken) return;
     const symbol = (typeof sym === "string" ? sym : addSymbol).trim().toUpperCase();
     if (!symbol) return;
     if (watchlist.find((w) => w.symbol === symbol)) {
@@ -109,19 +114,15 @@ export default function WatchlistPage() {
       setShowAdd(false);
       return;
     }
-    const stockInfo = STOCK_DATABASE.find(s => s.symbol === symbol);
-    const newStock: WatchlistStock = {
-      symbol,
-      addedAt: new Date().toISOString().split("T")[0],
-      currentPrice: stockInfo?.price ?? 1000 + Math.random() * 3000,
-      changePercent: stockInfo?.changePct ?? (Math.random() - 0.5) * 6,
-      aiStatus: "OK",
-      aiNote: `AI is now monitoring ${symbol}. Initial analysis will be ready shortly.`,
-      sector: stockInfo?.sector ?? "Other",
-    };
-    setWatchlist((prev) => [newStock, ...prev]);
-    setAddSymbol("");
-    setShowAdd(false);
+    try {
+      const result = await api.watchlist.add(symbol, accessToken);
+      setWatchlist((prev) => [mapItem(result.item), ...prev]);
+      setAddSymbol("");
+      setShowAdd(false);
+      setError("");
+    } catch (e: any) {
+      setError(e?.message ?? "Unable to add symbol.");
+    }
   };
 
   // Stock suggestions for add modal
@@ -228,10 +229,12 @@ export default function WatchlistPage() {
                     <p className="text-white/30 text-xs">{stock.sector} · Added {stock.addedAt}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-white font-semibold tabular-nums">₹{stock.currentPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
-                    <p className={`flex items-center justify-end gap-1 text-xs tabular-nums ${stock.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {stock.changePercent >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                      {Math.abs(stock.changePercent).toFixed(2)}%
+                    <p className="text-white font-semibold tabular-nums">
+                      {stock.currentPrice === null ? "No data" : `₹${stock.currentPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                    </p>
+                    <p className={`flex items-center justify-end gap-1 text-xs tabular-nums ${(stock.changePercent ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {(stock.changePercent ?? 0) >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      {stock.changePercent === null ? "—" : `${Math.abs(stock.changePercent).toFixed(2)}%`}
                     </p>
                   </div>
                 </div>

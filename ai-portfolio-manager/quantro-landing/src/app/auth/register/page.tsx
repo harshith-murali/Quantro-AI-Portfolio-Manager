@@ -26,12 +26,12 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterInput) => {
     setServerError("");
     try {
-      const { user, accessToken, refreshToken } = await api.auth.register({
+      const { user, accessToken } = await api.auth.register({
         name: data.name,
         email: data.email,
         password: data.password,
       });
-      useStore.getState().setTokens(accessToken, refreshToken);
+      useStore.getState().setAccessToken(accessToken);
       setUser(user);
       router.push("/auth/onboarding");
     } catch (e: any) {

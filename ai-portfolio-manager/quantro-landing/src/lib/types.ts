@@ -1,16 +1,14 @@
 export type Signal = "BUY" | "SELL" | "HOLD";
-export type RiskAppetite = "CONSERVATIVE" | "MODERATE" | "AGGRESSIVE";
-export type InvestmentGoal = "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM";
+export type RiskAppetite = "LOW" | "MEDIUM" | "HIGH";
 export type BacktestStrategy =
   | "RSI_MEAN_REVERSION" | "MACD_CROSSOVER" | "GOLDEN_CROSS"
   | "BB_BOUNCE" | "COMBINED";
 
 export interface UserProfile {
   monthlyIncome: number;
-  fixedExpenses: number;
-  discretionaryExpenses: number;
-  totalSavings: number;
-  investmentGoal: InvestmentGoal;
+  monthlyExpenses: number;
+  currentSavings: number;
+  financialGoal: string | null;
   riskAppetite: RiskAppetite;
   investableAmount?: number;
   riskScore?: number;

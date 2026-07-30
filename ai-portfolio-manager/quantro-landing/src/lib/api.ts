@@ -25,34 +25,28 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
   // Intercept 401 Unauthorized errors (e.g., token expired) and attempt a silent token refresh
   if (res.status === 401 && path !== "/auth/refresh" && path !== "/auth/login") {
     const state = useStore.getState();
-    const rt = state.refreshToken;
-    if (rt) {
-      try {
-        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken: rt }),
-        });
-        if (refreshRes.ok) {
-          const refreshJson = await refreshRes.json();
-          const newData = refreshJson.data ?? refreshJson;
-          if (newData.accessToken && newData.refreshToken) {
-            state.setTokens(newData.accessToken, newData.refreshToken);
-            // Retry the original request with the fresh access token!
-            const newHeaders: HeadersInit = {
-              ...headers,
-              Authorization: `Bearer ${newData.accessToken}`,
-            };
-            const retryRes = await fetch(`${BASE_URL}${path}`, { ...options, headers: newHeaders, credentials: "include" });
-            res = retryRes;
-          }
-        } else {
-          // Refresh token also invalid/expired -> log out the user
-          state.logout();
+    try {
+      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (refreshRes.ok) {
+        const refreshJson = await refreshRes.json();
+        const newData = refreshJson.data ?? refreshJson;
+        if (newData.accessToken) {
+          state.setAccessToken(newData.accessToken);
+          const newHeaders: HeadersInit = {
+            ...headers,
+            Authorization: `Bearer ${newData.accessToken}`,
+          };
+          res = await fetch(`${BASE_URL}${path}`, { ...options, headers: newHeaders, credentials: "include" });
         }
-      } catch {
+      } else {
         state.logout();
       }
+    } catch {
+      state.logout();
     }
   }
 
@@ -80,19 +74,19 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
 export const api = {
   auth: {
     register: (body: { name: string; email: string; password: string }) =>
-      fetchAPI<{ user: any; accessToken: string; refreshToken: string }>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
+      fetchAPI<{ user: any; accessToken: string }>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
 
     login: (body: { email: string; password: string }) =>
-      fetchAPI<{ user: any; accessToken: string; refreshToken: string }>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+      fetchAPI<{ user: any; accessToken: string }>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
 
     me: (token: string) =>
       fetchAPI<{ user: any }>("/auth/me", {}, token),
 
-    refresh: (refreshToken?: string) =>
-      fetchAPI<{ accessToken: string; refreshToken: string }>("/auth/refresh", { method: "POST", body: JSON.stringify({ refreshToken }) }),
+    refresh: () =>
+      fetchAPI<{ accessToken: string }>("/auth/refresh", { method: "POST" }),
 
-    logout: (token: string, refreshToken?: string) =>
-      fetchAPI<void>("/auth/logout", { method: "POST", body: JSON.stringify({ refreshToken }) }, token),
+    logout: (token: string) =>
+      fetchAPI<void>("/auth/logout", { method: "POST" }, token),
   },
 
   // ─── Financial Profile ──────────────────────────────────────────
@@ -131,19 +125,18 @@ export const api = {
     holding: (symbol: string, token: string) =>
       fetchAPI<any>(`/holdings/${symbol}`, {}, token),
 
-    buy: (body: { symbol: string; quantity: number; price?: number }, token: string) =>
+    buy: (body: { symbol: string; quantity: number }, token: string) =>
       fetchAPI<any>("/trade/buy", { method: "POST", body: JSON.stringify(body) }, token),
 
-    sell: (body: { symbol: string; quantity: number; price?: number }, token: string) =>
+    sell: (body: { symbol: string; quantity: number }, token: string) =>
       fetchAPI<any>("/trade/sell", { method: "POST", body: JSON.stringify(body) }, token),
 
-    // Unified helper — routes to /trade/buy or /trade/sell based on action or type
-    // price is required by the backend Zod schema — caller should pass averageBuyPrice; fallback = 1
-    trade: (body: { symbol: string; action?: "BUY" | "SELL" | null; quantity: number; price?: number; type?: string }, token: string) => {
+    // Unified helper — routes to /trade/buy or /trade/sell based on action or type.
+    // Execution price is resolved by the backend from market data.
+    trade: (body: { symbol: string; action?: "BUY" | "SELL" | null; quantity: number; type?: string; price?: number }, token: string) => {
       const action = body.action ?? body.type;
       const endpoint = action === "BUY" ? "/trade/buy" : "/trade/sell";
-      const price = body.price && body.price > 0 ? body.price : 1; // price required by schema
-      return fetchAPI<any>(endpoint, { method: "POST", body: JSON.stringify({ symbol: body.symbol, quantity: body.quantity, price }) }, token);
+      return fetchAPI<any>(endpoint, { method: "POST", body: JSON.stringify({ symbol: body.symbol, quantity: body.quantity }) }, token);
     },
 
     tradeHistory: (token: string, limit = 50, offset = 0) =>
@@ -205,6 +198,15 @@ export const api = {
       fetchAPI<any>(`/transactions/${id}`, {}, token),
   },
 
+  watchlist: {
+    list: (token: string) =>
+      fetchAPI<any>("/watchlist", {}, token),
+    add: (symbol: string, token: string) =>
+      fetchAPI<any>("/watchlist", { method: "POST", body: JSON.stringify({ symbol }) }, token),
+    remove: (symbol: string, token: string) =>
+      fetchAPI<void>(`/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" }, token),
+  },
+
   // ─── AI Insights ────────────────────────────────────────────────
   // Backend: POST /insights/portfolio-summary
   // Backend: POST /insights/stock/:symbol
@@ -232,12 +234,11 @@ export const api = {
   },
 
   // ─── Signals ──────────────────────────────────────────────────────
-  // Signal metadata is still mock-served; OHLCV data comes from the
-  // backend /ohlcv route which reads pre-loaded CSVs from AWS S3.
   signals: {
-    list: async (_token: string): Promise<any[]> => MOCK_SIGNALS,
-    get:  async (symbol: string, _token: string): Promise<any> =>
-      MOCK_SIGNALS.find((s) => s.symbol === symbol) ?? null,
+    list: async (token: string): Promise<any[]> =>
+      fetchAPI<any>("/signals", {}, token).then((d: any) => d.signals ?? []),
+    get:  async (symbol: string, token: string): Promise<any> =>
+      fetchAPI<any>(`/signals/${symbol}`, {}, token).then((d: any) => d.signal ?? null),
 
     /**
      * Fetch real OHLCV data from the backend (AWS S3 via /api/ohlcv).
@@ -300,15 +301,3 @@ export const api = {
     get: async (_id: string, _token: string): Promise<any> => null,
   },
 };
-
-// ─── Shared mock signal data ─────────────────────────────────────
-export const MOCK_SIGNALS = [
-  { symbol: "RELIANCE", signal: "BUY",  suitabilityScore: 92, suggestedAllocation: 50000, rsi: 28.5, macd: -1.2, currentPrice: 2845.50, changePercent: -1.4, rationale: "RSI oversold at major support. High conviction reversal setup." },
-  { symbol: "ZOMATO",   signal: "BUY",  suitabilityScore: 85, suggestedAllocation: 25000, rsi: 35.2, macd: 0.8,  currentPrice: 154.20,  changePercent: 3.2,  rationale: "Breaking out of consolidation with volume expansion." },
-  { symbol: "TCS",      signal: "HOLD", suitabilityScore: 78, suggestedAllocation: 0,     rsi: 55.4, macd: 2.1,  currentPrice: 3920.00, changePercent: 0.5,  rationale: "Range-bound. Await clear breakout above 4000." },
-  { symbol: "HDFCBANK", signal: "SELL", suitabilityScore: 45, suggestedAllocation: 0,     rsi: 74.5, macd: 5.4,  currentPrice: 1680.75, changePercent: 1.8,  rationale: "Overbought on RSI, momentum slowing near resistance." },
-  { symbol: "INFY",     signal: "BUY",  suitabilityScore: 88, suggestedAllocation: 40000, rsi: 32.1, macd: -0.5, currentPrice: 1425.30, changePercent: -2.1, rationale: "Mean reversion at 200 DMA with RSI oversold signal." },
-  { symbol: "WIPRO",    signal: "BUY",  suitabilityScore: 81, suggestedAllocation: 20000, rsi: 31.0, macd: -0.3, currentPrice: 468.50,  changePercent: -1.8, rationale: "Accumulation zone with improving MACD divergence." },
-  { symbol: "SUNPHARMA",signal: "HOLD", suitabilityScore: 72, suggestedAllocation: 0,     rsi: 52.0, macd: 1.2,  currentPrice: 1598.00, changePercent: 0.3,  rationale: "Neutral technicals — watch for sector rotation cue." },
-  { symbol: "SBIN",     signal: "BUY",  suitabilityScore: 79, suggestedAllocation: 30000, rsi: 36.5, macd: 0.5,  currentPrice: 812.40,  changePercent: 0.9,  rationale: "Public sector banking showing relative strength." },
-];

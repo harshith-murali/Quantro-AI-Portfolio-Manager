@@ -424,7 +424,7 @@ function SignalsPageContent() {
                     setTradeResult(null);
                     try {
                       await api.portfolio.trade(
-                        { symbol: tradeModal.symbol, type: tradeModal.type, quantity: Number(tradeQty), price: tradeModal.price },
+                        { symbol: tradeModal.symbol, type: tradeModal.type, quantity: Number(tradeQty) },
                         accessToken
                       );
                       setTradeResult({ ok: true, msg: `${tradeModal.type} order placed! Redirecting…` });

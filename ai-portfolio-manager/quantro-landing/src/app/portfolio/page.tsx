@@ -56,7 +56,7 @@ export default function PortfolioPage() {
   const handleTrade = async () => {
     if (!accessToken || !selectedSymbol || !tradeQty) return;
     try {
-      await api.portfolio.trade({ symbol: selectedSymbol, action: showBuySell, quantity: Number(tradeQty), price: tradePrice > 0 ? tradePrice : 1 }, accessToken);
+      await api.portfolio.trade({ symbol: selectedSymbol, action: showBuySell, quantity: Number(tradeQty) }, accessToken);
       setTradeMsg("Order placed successfully!");
       setTradeErr("");
       // Refresh holdings + summary so table reflects the new position

@@ -2,18 +2,17 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { PortfolioSnapshot } from "./types";
 
-export type InvestmentGoal = "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM";
-export type RiskAppetite   = "CONSERVATIVE" | "MODERATE" | "AGGRESSIVE";
+export type RiskAppetite = "LOW" | "MEDIUM" | "HIGH";
 
 export interface UserProfile {
   id: string;
   name: string;
   email: string;
   monthlyIncome?: number;
-  fixedExpenses?: number;
-  discretionaryExpenses?: number;
-  totalSavings?: number;
-  investmentGoal?: InvestmentGoal;
+  monthlyExpenses?: number;
+  currentSavings?: number;
+  financialGoal?: string | null;
+  investableAmount?: number;
   riskAppetite?: RiskAppetite;
 }
 
@@ -23,12 +22,11 @@ export type { Holding } from "./types";
 
 interface AppState {
   accessToken: string | null;
-  refreshToken: string | null;
   user: UserProfile | null;
   portfolio: PortfolioSnapshot | null;
   watchlist: string[]; // stored as array for JSON serialisation, used as Set in components
 
-  setTokens: (accessToken: string | null, refreshToken: string | null) => void;
+  setAccessToken: (accessToken: string | null) => void;
   setUser: (user: UserProfile | null) => void;
   setProfile: (user: UserProfile | null) => void;
   setPortfolio: (portfolio: PortfolioSnapshot | null) => void;
@@ -40,12 +38,11 @@ export const useStore = create<AppState>()(
   persist(
     (set) => ({
       accessToken: null,
-      refreshToken: null,
       user: null,
       portfolio: null,
       watchlist: [],
 
-      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+      setAccessToken: (accessToken) => set({ accessToken }),
       setUser: (user) => set({ user }),
       setProfile: (user) => set({ user }),
       setPortfolio: (portfolio) => set({ portfolio }),
@@ -55,13 +52,11 @@ export const useStore = create<AppState>()(
           s.has(symbol) ? s.delete(symbol) : s.add(symbol);
           return { watchlist: Array.from(s) };
         }),
-      logout: () => set({ accessToken: null, refreshToken: null, user: null, portfolio: null, watchlist: [] }),
+      logout: () => set({ accessToken: null, user: null, portfolio: null, watchlist: [] }),
     }),
     {
       name: "quantro-store",
       partialize: (s) => ({
-        accessToken: s.accessToken,
-        refreshToken: s.refreshToken,
         user: s.user,
         watchlist: s.watchlist,
       }),

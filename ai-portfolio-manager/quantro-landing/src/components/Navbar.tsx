@@ -317,7 +317,7 @@ export function Navbar() {
                         onClick={async () => { 
                           const state = useStore.getState();
                           if (state.accessToken) {
-                            try { await api.auth.logout(state.accessToken, state.refreshToken ?? undefined); } catch {}
+                            try { await api.auth.logout(state.accessToken); } catch {}
                           }
                           logout(); 
                           setDropdownOpen(false); 

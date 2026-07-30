@@ -20,15 +20,15 @@ import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/useAuth";
 
 const RISK_OPTIONS = [
-  { value: "CONSERVATIVE", label: "Conservative", desc: "20% of surplus", score: 3 },
-  { value: "MODERATE",     label: "Moderate",     desc: "35% of surplus", score: 5 },
-  { value: "AGGRESSIVE",   label: "Aggressive",   desc: "50% of surplus", score: 8 },
+  { value: "LOW",    label: "Conservative", desc: "20% of surplus", score: 3 },
+  { value: "MEDIUM", label: "Moderate",     desc: "35% of surplus", score: 5 },
+  { value: "HIGH",   label: "Aggressive",   desc: "50% of surplus", score: 8 },
 ] as const;
 
 const GOAL_OPTIONS = [
-  { value: "SHORT_TERM",  label: "Short Term",  desc: "< 1 year"  },
-  { value: "MEDIUM_TERM", label: "Medium Term", desc: "1–3 years" },
-  { value: "LONG_TERM",   label: "Long Term",   desc: "3+ years"  },
+  { value: "Short term",  label: "Short Term",  desc: "< 1 year"  },
+  { value: "Medium term", label: "Medium Term", desc: "1-3 years" },
+  { value: "Long term",   label: "Long Term",   desc: "3+ years"  },
 ] as const;
 
 function fmt(n: number) {
@@ -47,10 +47,11 @@ export default function ProfilePage() {
   const [editOpen,   setEditOpen]   = useState(false);
   const [saving,     setSaving]     = useState(false);
   const [saveMsg,    setSaveMsg]    = useState("");
+  const [profileExists, setProfileExists] = useState(false);
 
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { riskAppetite: "MODERATE", investmentGoal: "MEDIUM_TERM" },
+    defaultValues: { riskAppetite: "MEDIUM", financialGoal: "Medium term" },
   });
 
   const income = watch("monthlyIncome") || 0;
@@ -67,8 +68,8 @@ export default function ProfilePage() {
         fixedExpenses: Number(profile.monthlyExpenses),
         discretionaryExpenses: 0,
         totalSavings: Number(profile.currentSavings),
-        investmentGoal: (profile.financialGoal as any) || "MEDIUM_TERM",
-        riskAppetite: profile.riskAppetite === "LOW" ? "CONSERVATIVE" : profile.riskAppetite === "HIGH" ? "AGGRESSIVE" : "MODERATE",
+        financialGoal: profile.financialGoal || "Medium term",
+        riskAppetite: profile.riskAppetite ?? "MEDIUM",
       });
     }
   }, [user, reset]);
@@ -76,7 +77,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!accessToken) return;
     Promise.allSettled([
-      api.profile.get(accessToken).then((d: any) => setUser(d.profile ?? d)).catch(() => {}),
+      api.profile.get(accessToken).then((d: any) => { setUser(d.profile ?? d); setProfileExists(true); }).catch(() => setProfileExists(false)),
       api.portfolio.summary(accessToken).then((d: any) => setPortfolio(d.summary ?? d)).catch(() => {}),
       api.portfolio.holdings(accessToken).then((d: any) => setHoldings(d.holdings ?? d ?? [])).catch(() => {}),
       api.wallet.balance(accessToken).then((d: any) => setWallet(d)).catch(() => {}),
@@ -87,25 +88,23 @@ export default function ProfilePage() {
   const onSave = async (data: ProfileInput) => {
     if (!accessToken) return;
     setSaving(true); setSaveMsg("");
-    const surplus = Math.max(0, (data.monthlyIncome ?? 0) - (data.fixedExpenses ?? 0) - (data.discretionaryExpenses ?? 0));
-    const multiplier = data.riskAppetite === "AGGRESSIVE" ? 0.5 : data.riskAppetite === "CONSERVATIVE" ? 0.2 : 0.35;
-    const localInvestable = Math.round(surplus * multiplier);
     try {
       const payload = {
         monthlyIncome:    data.monthlyIncome,
         monthlyExpenses:  (data.fixedExpenses ?? 0) + (data.discretionaryExpenses ?? 0),
         currentSavings:   data.totalSavings ?? 0,
-        financialGoal:    data.investmentGoal ?? "MEDIUM_TERM",
-        riskAppetite:     data.riskAppetite === "CONSERVATIVE" ? "LOW" : data.riskAppetite === "AGGRESSIVE" ? "HIGH" : "MEDIUM",
-        investableAmount: localInvestable,
+        financialGoal:    data.financialGoal ?? null,
+        riskAppetite:     data.riskAppetite,
       };
-      const res = await api.profile.create(payload, accessToken);
+      const res = profileExists
+        ? await api.profile.update(payload, accessToken)
+        : await api.profile.create(payload, accessToken);
       setProfile(res.profile ?? res);
-      setSaveMsg("Profile saved!");
+      setProfileExists(true);
+      setSaveMsg("Profile saved.");
       setTimeout(() => { setEditOpen(false); setSaveMsg(""); }, 1500);
-    } catch {
-      setSaveMsg("Saved locally (backend unavailable).");
-      setTimeout(() => { setEditOpen(false); setSaveMsg(""); }, 1500);
+    } catch (error: any) {
+      setSaveMsg(error?.message ?? "Unable to save profile.");
     } finally {
       setSaving(false);
     }
@@ -130,7 +129,7 @@ export default function ProfilePage() {
   const totalDep     = Number(txSummary?.totalDeposited ?? 0);
   const invested     = Number(txSummary?.totalInvested ?? 0);
   const riskInfo     = RISK_OPTIONS.find(r => r.value === (user as any)?.riskAppetite) ?? RISK_OPTIONS[1];
-  const goalInfo     = GOAL_OPTIONS.find(g => g.value === (user as any)?.investmentGoal) ?? GOAL_OPTIONS[1];
+  const goalInfo     = GOAL_OPTIONS.find(g => g.value === (user as any)?.financialGoal) ?? GOAL_OPTIONS[1];
   const memberSince  = (user as any)?.createdAt ? new Date((user as any).createdAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "—";
   const initials     = user?.name ? user.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase() : "?";
 
@@ -359,7 +358,7 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-3 gap-2">
                     {GOAL_OPTIONS.map(opt => (
                       <label key={opt.value} className="cursor-pointer">
-                        <input {...register("investmentGoal")} type="radio" value={opt.value} className="sr-only peer" />
+                        <input {...register("financialGoal")} type="radio" value={opt.value} className="sr-only peer" />
                         <span className="block p-2.5 rounded-xl border border-white/10 text-center peer-checked:border-gold peer-checked:bg-gold/5 transition-all">
                           <span className="block text-white/70 text-xs font-medium peer-checked:text-white">{opt.label}</span>
                           <span className="block text-white/30 text-[10px] mt-0.5">{opt.desc}</span>

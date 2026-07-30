@@ -1,0 +1,26 @@
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+
+# Runtime logs
+*.log
+logs/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Generated market/pipeline artifacts
+*.csv
+pipeline-artifact.md

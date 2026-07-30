@@ -2,61 +2,31 @@ import prisma from '@/config/db';
 import redis from '@/config/redis';
 import { logger } from '@/utils/logger';
 import { getSectorForSymbol } from '@/constants/sectors';
-
-/**
- * Simulated pricing aggregator to provide dynamic unrealized PNL
- * using deterministic symbol codes so dashboard outputs match consistently.
- */
-function getMockLiveValue(quantity: number, averageBuy: number, symbol: string): number {
-  const totalInvested = quantity * averageBuy;
-  // Variance between -3% and +6% based on ticker ASCII sum
-  const codeSum = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const modFactor = (codeSum % 10) - 3; 
-  const multiplier = 1 + (modFactor / 100);
-  return Number((totalInvested * multiplier).toFixed(2));
-}
-
-/**
- * Helper to compute live value using real close prices if available, falling back to mock.
- */
-export function getRealLivePrice(quantity: number, averageBuy: number, symbol: string, latestPrices?: Record<string, number>): number {
-  if (latestPrices && latestPrices[symbol]) {
-    return Number((quantity * latestPrices[symbol]).toFixed(2));
-  }
-  return getMockLiveValue(quantity, averageBuy, symbol);
-}
+import { getPortfolioValuation } from '@/services/portfolioValuation.service';
 
 /**
  * 1. Top-level Portfolio KPIs
  */
 export async function getSummary(userId: string) {
-  const [holdings, wallet, profile] = await Promise.all([
-    prisma.holding.findMany({ where: { userId } }),
-    prisma.wallet.findUnique({ where: { userId } }),
+  const [valuation, profile] = await Promise.all([
+    getPortfolioValuation(userId),
     prisma.financialProfile.findUnique({ where: { userId } }),
   ]);
 
-  let totalInvested = 0;
-  let currentValue = 0;
-
-  holdings.forEach((h) => {
-    const invested = Number(h.quantity) * Number(h.averageBuyPrice);
-    const liveVal = getMockLiveValue(Number(h.quantity), Number(h.averageBuyPrice), h.symbol);
-    totalInvested += invested;
-    currentValue += liveVal;
-  });
-
-  const totalPnL = currentValue - totalInvested;
-  const totalPnLPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
-
   return {
-    totalInvested: Number(totalInvested.toFixed(2)),
-    currentValue: Number(currentValue.toFixed(2)),
-    totalPnL: Number(totalPnL.toFixed(2)),
-    totalPnLPercent: Number(totalPnLPercent.toFixed(2)),
-    walletBalance: wallet ? Number(wallet.balance) : 0.0,
-    totalStocks: holdings.length,
+    totalInvested: valuation.totalInvested,
+    currentValue: valuation.currentValue,
+    totalPnL: valuation.totalPnl,
+    totalPnLPercent: valuation.unrealizedPnlPercent,
+    dayChange: valuation.dayChange,
+    dayChangePercent: valuation.dayChangePercent,
+    walletBalance: valuation.walletBalance,
+    totalStocks: valuation.holdingsCount,
     riskAppetite: profile?.riskAppetite || 'NOT_SET',
+    missingPriceSymbols: valuation.missingPriceSymbols,
+    priceDataCoveragePercent: valuation.priceDataCoveragePercent,
+    lastMarketDataUpdate: valuation.lastMarketDataUpdate,
+    updateStatus: valuation.updateStatus,
   };
 }
 
@@ -81,12 +51,12 @@ export async function getPortfolioGrowth(userId: string) {
  * 3. Sector-wise allocations (Pie chart friendly)
  */
 export async function getSectorAllocation(userId: string) {
-  const holdings = await prisma.holding.findMany({ where: { userId } });
+  const valuation = await getPortfolioValuation(userId);
   const sectorMap: Record<string, number> = {};
   let totalValue = 0;
 
-  holdings.forEach((h) => {
-    const val = getMockLiveValue(Number(h.quantity), Number(h.averageBuyPrice), h.symbol);
+  valuation.valuedHoldings.forEach((h) => {
+    const val = h.currentValue;
     const sec = getSectorForSymbol(h.symbol);
     sectorMap[sec] = (sectorMap[sec] || 0) + val;
     totalValue += val;
@@ -108,19 +78,12 @@ export async function getSectorAllocation(userId: string) {
  * 4. Top performance movers (3 winners, 3 losers)
  */
 export async function getTopMovers(userId: string) {
-  const holdings = await prisma.holding.findMany({ where: { userId } });
-
-  const mapped = holdings.map((h) => {
-    const invested = Number(h.quantity) * Number(h.averageBuyPrice);
-    const liveVal = getMockLiveValue(Number(h.quantity), Number(h.averageBuyPrice), h.symbol);
-    const pnl = liveVal - invested;
-    const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
-    return {
-      symbol: h.symbol,
-      pnl: Number(pnl.toFixed(2)),
-      pnlPercent: Number(pnlPercent.toFixed(2)),
-    };
-  });
+  const valuation = await getPortfolioValuation(userId);
+  const mapped = valuation.valuedHoldings.map((h) => ({
+    symbol: h.symbol,
+    pnl: h.unrealizedPnl,
+    pnlPercent: h.unrealizedPnlPercent,
+  }));
 
   // Sort highest to lowest PNL%
   mapped.sort((a, b) => b.pnlPercent - a.pnlPercent);
@@ -194,30 +157,27 @@ export async function getRecentActivity(userId: string) {
  * 6. Complete table records mapped with custom inline PNL computation
  */
 export async function getHoldingsTable(userId: string) {
-  const holdings = await prisma.holding.findMany({
-    where: { userId },
-    orderBy: { symbol: 'asc' },
-  });
+  const [holdings, valuation] = await Promise.all([
+    prisma.holding.findMany({ where: { userId }, orderBy: { symbol: 'asc' } }),
+    getPortfolioValuation(userId),
+  ]);
+  const valuedBySymbol = new Map(valuation.valuedHoldings.map((h) => [h.symbol, h]));
 
   const data = holdings.map((h) => {
-    const quantity = Number(h.quantity);
-    const avgBuy = Number(h.averageBuyPrice);
-    
-    const totalCost = quantity * avgBuy;
-    const liveVal = getMockLiveValue(quantity, avgBuy, h.symbol);
-    const pnl = liveVal - totalCost;
-    const pnlPercent = totalCost > 0 ? (pnl / totalCost) * 100 : 0;
-
+    const valued = valuedBySymbol.get(h.symbol);
     return {
       id: h.id,
       symbol: h.symbol,
       sector: getSectorForSymbol(h.symbol),
-      quantity,
-      averageBuyPrice: avgBuy,
-      currentValue: liveVal,
-      totalCost: Number(totalCost.toFixed(2)),
-      pnl: Number(pnl.toFixed(2)),
-      pnlPercent: Number(pnlPercent.toFixed(2)),
+      quantity: Number(h.quantity),
+      averageBuyPrice: Number(h.averageBuyPrice),
+      currentPrice: valued?.currentPrice ?? null,
+      currentValue: valued?.currentValue ?? null,
+      totalCost: Number(Number(h.totalInvested).toFixed(2)),
+      pnl: valued?.unrealizedPnl ?? null,
+      pnlPercent: valued?.unrealizedPnlPercent ?? null,
+      priceStatus: valued ? 'AVAILABLE' : 'MISSING',
+      marketDate: valued?.marketDate ?? null,
       updatedAt: h.updatedAt,
     };
   });

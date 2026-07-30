@@ -23,7 +23,7 @@ function setRefreshCookie(res: Response, token: string): void {
   res.cookie(REFRESH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
     maxAge: maxAgeMs,
     path: '/api/auth',
   });
@@ -33,7 +33,7 @@ function clearRefreshCookie(res: Response): void {
   res.clearCookie(REFRESH_COOKIE_NAME, {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
     path: '/api/auth',
   });
 }
@@ -53,7 +53,6 @@ export async function register(req: Request, res: Response): Promise<void> {
     successResponse('Account created successfully', {
       user: result.user,
       accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     }),
   );
 }
@@ -71,7 +70,6 @@ export async function login(req: Request, res: Response): Promise<void> {
     successResponse('Login successful', {
       user: result.user,
       accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     }),
   );
 }
@@ -82,7 +80,7 @@ export async function login(req: Request, res: Response): Promise<void> {
  */
 export async function logout(req: Request, res: Response): Promise<void> {
   const userId = req.user!.id;
-  const rawRefreshToken: string | undefined = req.body.refreshToken || req.cookies[REFRESH_COOKIE_NAME];
+  const rawRefreshToken: string | undefined = req.cookies[REFRESH_COOKIE_NAME];
 
   await AuthService.logout(userId, rawRefreshToken);
 
@@ -96,7 +94,7 @@ export async function logout(req: Request, res: Response): Promise<void> {
  * Reads refresh token from HttpOnly cookie.
  */
 export async function refresh(req: Request, res: Response): Promise<void> {
-  const rawRefreshToken: string | undefined = req.body.refreshToken || req.cookies[REFRESH_COOKIE_NAME];
+  const rawRefreshToken: string | undefined = req.cookies[REFRESH_COOKIE_NAME];
 
   if (!rawRefreshToken) {
     throw new AuthError('Refresh token not found');
@@ -109,7 +107,6 @@ export async function refresh(req: Request, res: Response): Promise<void> {
   res.status(200).json(
     successResponse('Tokens refreshed successfully', {
       accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
     }),
   );
 }

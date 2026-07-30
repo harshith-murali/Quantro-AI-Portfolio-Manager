@@ -178,7 +178,7 @@ export default function SignalDetailPage() {
     setError("");
     setInsufficientFunds(false);
     try {
-      await api.portfolio.trade({ symbol, type: tradeType, quantity: Number(quantity), price: signal.currentPrice }, accessToken);
+      await api.portfolio.trade({ symbol, type: tradeType, quantity: Number(quantity) }, accessToken);
       setTradeSuccess(true);
       setTimeout(() => { setTradeSuccess(false); router.push("/portfolio"); }, 2000);
     } catch (e: any) {

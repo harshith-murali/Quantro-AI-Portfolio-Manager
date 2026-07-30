@@ -16,27 +16,63 @@ enum Role {
 }
 
 model User {
-  id             String         @id @default(cuid())
-  name           String
-  email          String         @unique
-  hashedPassword String
-  role           Role           @default(USER)
+  id                 String              @id @default(cuid())
+  name               String
+  email              String              @unique
+  hashedPassword     String
+  role               Role                @default(USER)
   /// Incremented on logout to invalidate all outstanding refresh tokens
-  tokenVersion   Int            @default(0)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  refreshTokens    RefreshToken[]
-  financialProfile FinancialProfile?
-  trades           Trade[]
-  holdings         Holding[]
-  portfolioHistory PortfolioHistory[]
-  wallet           Wallet?
-  transactions     Transaction[]
-  insightLogs      InsightLog[]
-  portfolioSummary PortfolioSummary?
+  tokenVersion       Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  refreshTokens      RefreshToken[]
+  financialProfile   FinancialProfile?
+  trades             Trade[]
+  holdings           Holding[]
+  portfolioHistory   PortfolioHistory[]
+  wallet             Wallet?
+  transactions       Transaction[]
+  insightLogs        InsightLog[]
+  portfolioSummary   PortfolioSummary?
+  watchlistItems     WatchlistItem[]
+  backtestExecutions BacktestExecution[]
 
   @@index([email])
   @@map("users")
+}
+
+model WatchlistItem {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  symbol    String   @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@index([userId])
+  @@index([symbol])
+  @@map("watchlist_items")
+}
+
+enum BacktestStatus {
+  SUCCESS
+  FAILED
+}
+
+model BacktestExecution {
+  id             String         @id @default(cuid())
+  userId         String         @map("user_id")
+  symbol         String         @db.VarChar(20)
+  shortWindow    Int            @map("short_window")
+  longWindow     Int            @map("long_window")
+  initialCapital Decimal        @map("initial_capital") @db.Decimal(15, 2)
+  status         BacktestStatus
+  createdAt      DateTime       @default(now()) @map("created_at")
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("backtest_executions")
 }
 
 model RefreshToken {
@@ -84,18 +120,18 @@ enum TradeType {
 }
 
 model Trade {
-  id         String    @id @default(cuid())
-  userId     String    @map("user_id")
-  symbol     String    @db.VarChar(20)
-  type       TradeType
-  quantity   Int
-  price      Decimal   @db.Decimal(15, 2)
-  total      Decimal   @db.Decimal(15, 2)
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  symbol      String    @db.VarChar(20)
+  type        TradeType
+  quantity    Int
+  price       Decimal   @db.Decimal(15, 2)
+  total       Decimal   @db.Decimal(15, 2)
   /// Realized P&L captured at time of SELL
-  realizedPnl Decimal? @map("realized_pnl") @db.Decimal(15, 2)
-  tradeDate  DateTime  @default(now()) @map("trade_date")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  realizedPnl Decimal?  @map("realized_pnl") @db.Decimal(15, 2)
+  tradeDate   DateTime  @default(now()) @map("trade_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([symbol])
@@ -202,23 +238,22 @@ model InsightLog {
 }
 
 model PortfolioSummary {
-  id                   String   @id @default(cuid())
-  userId               String   @unique @map("user_id")
-  totalValue           Decimal  @map("total_value") @db.Decimal(15, 2)
-  totalInvested        Decimal  @map("total_invested") @db.Decimal(15, 2)
-  unrealizedPnl        Decimal  @map("unrealized_pnl") @db.Decimal(15, 2)
-  unrealizedPnlPct     Decimal  @map("unrealized_pnl_pct") @db.Decimal(15, 2)
-  realizedPnl          Decimal  @map("realized_pnl") @db.Decimal(15, 2)
-  dayChange            Decimal  @map("day_change") @db.Decimal(15, 2)
-  dayChangePercent     Decimal  @map("day_change_percent") @db.Decimal(15, 2)
-  sevenDayReturn       Decimal? @map("seven_day_return") @db.Decimal(15, 2)
-  thirtyDayReturn      Decimal? @map("thirty_day_return") @db.Decimal(15, 2)
-  dataCoveragePercent  Decimal  @map("data_coverage_percent") @db.Decimal(15, 2)
-  updateStatus         String   @map("update_status") @db.VarChar(20)
-  lastPriceUpdate      DateTime @map("last_price_update")
-  updatedAt            DateTime @updatedAt @map("updated_at")
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(cuid())
+  userId              String   @unique @map("user_id")
+  totalValue          Decimal  @map("total_value") @db.Decimal(15, 2)
+  totalInvested       Decimal  @map("total_invested") @db.Decimal(15, 2)
+  unrealizedPnl       Decimal  @map("unrealized_pnl") @db.Decimal(15, 2)
+  unrealizedPnlPct    Decimal  @map("unrealized_pnl_pct") @db.Decimal(15, 2)
+  realizedPnl         Decimal  @map("realized_pnl") @db.Decimal(15, 2)
+  dayChange           Decimal  @map("day_change") @db.Decimal(15, 2)
+  dayChangePercent    Decimal  @map("day_change_percent") @db.Decimal(15, 2)
+  sevenDayReturn      Decimal? @map("seven_day_return") @db.Decimal(15, 2)
+  thirtyDayReturn     Decimal? @map("thirty_day_return") @db.Decimal(15, 2)
+  dataCoveragePercent Decimal  @map("data_coverage_percent") @db.Decimal(15, 2)
+  updateStatus        String   @map("update_status") @db.VarChar(20)
+  lastPriceUpdate     DateTime @map("last_price_update")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("portfolio_summaries")
 }
-

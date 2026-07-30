@@ -38,19 +38,19 @@ export async function createFinancialProfile(userId: string, input: FinancialPro
 
   // Calculate dynamic field
   const investableAmount = calculateInvestableAmount(
-    input.monthly_income,
-    input.monthly_expenses
+    input.monthlyIncome,
+    input.monthlyExpenses
   );
 
   // Map incoming camel/snake schema to Prisma data structure
   return prisma.financialProfile.create({
     data: {
       userId,
-      monthlyIncome: new Prisma.Decimal(input.monthly_income),
-      monthlyExpenses: new Prisma.Decimal(input.monthly_expenses),
-      currentSavings: new Prisma.Decimal(input.current_savings),
-      financialGoal: input.financial_goal ?? null,
-      riskAppetite: input.risk_appetite as RiskAppetite,
+      monthlyIncome: new Prisma.Decimal(input.monthlyIncome),
+      monthlyExpenses: new Prisma.Decimal(input.monthlyExpenses),
+      currentSavings: new Prisma.Decimal(input.currentSavings),
+      financialGoal: input.financialGoal ?? null,
+      riskAppetite: input.riskAppetite as RiskAppetite,
       investableAmount: new Prisma.Decimal(investableAmount),
     },
   });
@@ -68,18 +68,18 @@ export async function updateFinancialProfile(userId: string, input: FinancialPro
 
   // Recalculate
   const investableAmount = calculateInvestableAmount(
-    input.monthly_income,
-    input.monthly_expenses
+    input.monthlyIncome,
+    input.monthlyExpenses
   );
 
   return prisma.financialProfile.update({
     where: { userId },
     data: {
-      monthlyIncome: new Prisma.Decimal(input.monthly_income),
-      monthlyExpenses: new Prisma.Decimal(input.monthly_expenses),
-      currentSavings: new Prisma.Decimal(input.current_savings),
-      financialGoal: input.financial_goal ?? null,
-      riskAppetite: input.risk_appetite as RiskAppetite,
+      monthlyIncome: new Prisma.Decimal(input.monthlyIncome),
+      monthlyExpenses: new Prisma.Decimal(input.monthlyExpenses),
+      currentSavings: new Prisma.Decimal(input.currentSavings),
+      financialGoal: input.financialGoal ?? null,
+      riskAppetite: input.riskAppetite as RiskAppetite,
       investableAmount: new Prisma.Decimal(investableAmount),
     },
   });

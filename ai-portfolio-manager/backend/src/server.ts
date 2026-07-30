@@ -11,6 +11,7 @@ import { logger } from '@/utils/logger';
 import { requestLogger } from '@/middlewares/requestLogger';
 import { errorHandler } from '@/middlewares/errorHandler';
 import { generalRateLimiter } from '@/middlewares/rateLimiter';
+import { verifyOriginMiddleware } from '@/middlewares/verifyOrigin';
 import apiRouter from '@/routes/index';
 import prisma from '@/config/db';
 
@@ -54,6 +55,9 @@ function createApp(): express.Application {
 
   // ── General rate limiting ───────────────────────────────────────
   app.use('/api', generalRateLimiter);
+
+  // ── CSRF defense for cookie-backed auth flows ──────────────────
+  app.use('/api', verifyOriginMiddleware);
 
   // ── API routes ──────────────────────────────────────────────────
   app.use('/api', apiRouter);
