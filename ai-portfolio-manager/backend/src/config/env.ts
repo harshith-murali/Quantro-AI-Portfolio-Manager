@@ -27,7 +27,7 @@ const envSchema = z.object({
     .refine((val) => !isNaN(val) && val >= 10 && val <= 14, {
       message: 'BCRYPT_ROUNDS must be between 10 and 14',
     }),
-  REDIS_HOST: z.string().default('localhost'),
+  REDIS_HOST: z.string().optional(),
   REDIS_PORT: z.string().default('6379').transform(Number),
   REDIS_PASSWORD: z.string().optional(),
   REDIS_TLS: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
