@@ -1,12 +1,6 @@
 import { useStore } from "./store";
 
-// In the browser, use a relative /api path so requests go through the
-// Next.js rewrite proxy → Express backend (no CORS, no port-3001 exposure).
-// In server-side context (SSR / Route Handlers), hit the backend directly.
-const BASE_URL =
-  typeof window !== "undefined"
-    ? "/api"
-    : (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api");
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
 async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const headers: HeadersInit = {
