@@ -4,32 +4,35 @@ This repo is deployment-ready for a split frontend/backend setup:
 
 - Frontend: Vercel
 - Backend: Render
-- Database: Render PostgreSQL
+- Database: AWS RDS PostgreSQL
 - Market data: AWS S3
 
 ## 1. Backend on Render
 
 Use the root `render.yaml` Blueprint.
 
-The Blueprint uses Render free plans for easy demo deployment. Render free web services can spin down after inactivity, and free Postgres databases expire after 30 days. Upgrade both before treating this as a long-lived production deployment.
+The Blueprint uses a Render free web service for easy demo deployment. Render free web services can spin down after inactivity. Upgrade before treating this as a long-lived production deployment.
 
 1. In Render, choose **New > Blueprint**.
 2. Connect `harshith-murali/Quantro-AI-Portfolio-Manager`.
 3. Select the `fix/quantro-production-readiness` branch or merge this branch into `main` first.
 4. Render will create:
    - `quantro-api`
-   - `quantro-postgres`
 5. Fill the prompted secret/environment values.
 
 Required backend environment values:
 
 ```env
+DATABASE_URL=your-aws-rds-postgres-url
+ACCESS_TOKEN_SECRET=your-access-token-secret
+REFRESH_TOKEN_SECRET=your-refresh-token-secret
 CORS_ORIGIN=https://your-vercel-app.vercel.app
 AWS_REGION=your-aws-region
 AWS_S3_BUCKET=your-s3-bucket
 AWS_ACCESS_KEY_ID=your-aws-access-key-id
 AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key
 ANTHROPIC_API_KEY=optional-anthropic-key
+BYPASS_MARKET_HOURS=true
 ```
 
 The Blueprint already sets:
@@ -37,7 +40,7 @@ The Blueprint already sets:
 ```env
 NODE_ENV=production
 REFRESH_COOKIE_SAMESITE=none
-ACCESS_TOKEN_EXPIRY=15m
+ACCESS_TOKEN_EXPIRY=30m
 REFRESH_TOKEN_EXPIRY=7d
 MARKET_DATA_MAX_STALENESS_DAYS=10
 ```
@@ -120,7 +123,7 @@ Check:
 
 Check:
 
-- `DATABASE_URL` is populated from `quantro-postgres`.
+- `DATABASE_URL` points to the AWS RDS PostgreSQL database and the database is reachable from Render.
 - The Render service start command is:
 
 ```bash

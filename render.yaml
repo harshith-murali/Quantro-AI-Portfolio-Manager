@@ -12,15 +12,13 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: quantro-postgres
-          property: connectionString
+        sync: false
       - key: ACCESS_TOKEN_SECRET
-        generateValue: true
+        sync: false
       - key: REFRESH_TOKEN_SECRET
-        generateValue: true
+        sync: false
       - key: ACCESS_TOKEN_EXPIRY
-        value: 15m
+        value: 30m
       - key: REFRESH_TOKEN_EXPIRY
         value: 7d
       - key: REFRESH_COOKIE_SAMESITE
@@ -41,9 +39,5 @@ services:
         value: "10"
       - key: ANTHROPIC_API_KEY
         sync: false
-
-databases:
-  - name: quantro-postgres
-    plan: free
-    databaseName: quantro
-    user: quantro
+      - key: BYPASS_MARKET_HOURS
+        sync: false

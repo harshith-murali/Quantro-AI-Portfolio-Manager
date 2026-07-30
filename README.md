@@ -164,6 +164,9 @@ MARKET_DATA_MAX_STALENESS_DAYS=10
 
 # AI advisor
 ANTHROPIC_API_KEY=
+
+# Demo/testing override
+BYPASS_MARKET_HOURS=true
 ```
 
 Frontend `.env.local`:
@@ -248,7 +251,8 @@ npm run build
 
 Recommended deployment:
 
-- Backend and PostgreSQL on Render using `render.yaml`
+- Backend on Render using `render.yaml`
+- PostgreSQL on AWS RDS
 - Frontend on Vercel with root directory `ai-portfolio-manager/quantro-landing`
 - AWS S3 for OHLCV market data
 
