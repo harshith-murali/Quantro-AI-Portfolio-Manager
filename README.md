@@ -148,6 +148,7 @@ ACCESS_TOKEN_SECRET=replace-with-32-plus-char-secret
 REFRESH_TOKEN_SECRET=replace-with-different-32-plus-char-secret
 ACCESS_TOKEN_EXPIRY=15m
 REFRESH_TOKEN_EXPIRY=7d
+REFRESH_COOKIE_SAMESITE=lax
 CORS_ORIGIN=http://localhost:3000
 BCRYPT_ROUNDS=12
 
@@ -157,6 +158,8 @@ REDIS_URL=redis://localhost:6379
 # Market data
 AWS_REGION=us-east-1
 AWS_S3_BUCKET=your-market-data-bucket
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
 MARKET_DATA_MAX_STALENESS_DAYS=10
 
 # AI advisor
@@ -240,6 +243,16 @@ npm test
 cd ../quantro-landing
 npm run build
 ```
+
+## Deployment
+
+Recommended deployment:
+
+- Backend and PostgreSQL on Render using `render.yaml`
+- Frontend on Vercel with root directory `ai-portfolio-manager/quantro-landing`
+- AWS S3 for OHLCV market data
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the exact Render/Vercel steps and required secrets.
 
 ## Resume-Friendly Summary
 
