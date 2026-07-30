@@ -14,6 +14,7 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test DATABASE_URL=postgresql://test:test@localhost:5432/quantro_test ACCESS_TOKEN_SECRET=0123456789abcdef0123456789abcdef REFRESH_TOKEN_SECRET=abcdef0123456789abcdef0123456789 AWS_S3_BUCKET=test-bucket node -r ts-node/register -r tsconfig-paths/register --test src/**/*.test.ts",
     "pipeline": "ts-node -r tsconfig-paths/register src/scripts/runPipeline.ts",
     "pipeline:force": "ts-node -r tsconfig-paths/register src/scripts/runPipeline.ts --force"
   },
