@@ -18,8 +18,8 @@ export const profileSchema = z.object({
   fixedExpenses: z.number().min(0),
   discretionaryExpenses: z.number().min(0),
   totalSavings: z.number().min(0),
-  investmentGoal: z.enum(["SHORT_TERM", "MEDIUM_TERM", "LONG_TERM"]),
-  riskAppetite: z.enum(["CONSERVATIVE", "MODERATE", "AGGRESSIVE"]),
+  financialGoal: z.string().max(500).optional().nullable(),
+  riskAppetite: z.enum(["LOW", "MEDIUM", "HIGH"]),
 }).refine(
   (d) => d.monthlyIncome > d.fixedExpenses + d.discretionaryExpenses,
   { message: "Expenses cannot exceed income", path: ["fixedExpenses"] }

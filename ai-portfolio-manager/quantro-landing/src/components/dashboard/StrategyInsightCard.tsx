@@ -10,15 +10,15 @@ interface Props {
 }
 
 const RISK_COLORS: Record<string, string> = {
-  AGGRESSIVE: "text-red-400",
-  MODERATE: "text-yellow-400",
-  CONSERVATIVE: "text-emerald-400",
+  HIGH: "text-red-400",
+  MEDIUM: "text-yellow-400",
+  LOW: "text-emerald-400",
 };
 
 const RISK_LABELS: Record<string, string> = {
-  AGGRESSIVE: "High",
-  MODERATE: "Med",
-  CONSERVATIVE: "Low",
+  HIGH: "High",
+  MEDIUM: "Med",
+  LOW: "Low",
   NOT_SET: "—",
 };
 

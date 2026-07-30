@@ -2,18 +2,17 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { PortfolioSnapshot } from "./types";
 
-export type InvestmentGoal = "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM";
-export type RiskAppetite   = "CONSERVATIVE" | "MODERATE" | "AGGRESSIVE";
+export type RiskAppetite = "LOW" | "MEDIUM" | "HIGH";
 
 export interface UserProfile {
   id: string;
   name: string;
   email: string;
   monthlyIncome?: number;
-  fixedExpenses?: number;
-  discretionaryExpenses?: number;
-  totalSavings?: number;
-  investmentGoal?: InvestmentGoal;
+  monthlyExpenses?: number;
+  currentSavings?: number;
+  financialGoal?: string | null;
+  investableAmount?: number;
   riskAppetite?: RiskAppetite;
 }
 

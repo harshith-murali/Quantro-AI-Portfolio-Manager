@@ -68,7 +68,7 @@ export default function AIAdvisorPage() {
   const [enqResult, setEnqResult] = useState("");
   const [enquiring, setEnquiring] = useState(false);
 
-  const riskAppetite = (user as any)?.riskAppetite ?? "MODERATE";
+  const riskAppetite = (user as any)?.riskAppetite ?? "MEDIUM";
   const [recsLoading, setRecsLoading] = useState(false);
   const [recsError, setRecsError] = useState("");
 
@@ -156,7 +156,7 @@ export default function AIAdvisorPage() {
     finally { setEnquiring(false); }
   };
 
-  const investable = balance * (riskAppetite === "AGGRESSIVE" ? 0.5 : riskAppetite === "CONSERVATIVE" ? 0.18 : 0.32);
+  const investable = balance * (riskAppetite === "HIGH" ? 0.5 : riskAppetite === "LOW" ? 0.18 : 0.32);
   const totalAllocated = recs.reduce((s,r) => s+r.totalCost, 0);
 
   if (loading) return (

@@ -27,11 +27,11 @@ type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 type Goal = string;
 
 interface FormData {
-  monthly_income: number | "";
-  monthly_expenses: number | "";
-  current_savings: number | "";
-  financial_goal: Goal;
-  risk_appetite: RiskLevel | "";
+  monthlyIncome: number | "";
+  monthlyExpenses: number | "";
+  currentSavings: number | "";
+  financialGoal: Goal;
+  riskAppetite: RiskLevel | "";
 }
 
 // ─── Constants ────────────────────────────────────────────────────
@@ -96,16 +96,16 @@ export default function OnboardingPage() {
   const [done, setDone] = useState(false);
 
   const [form, setForm] = useState<FormData>({
-    monthly_income: "",
-    monthly_expenses: "",
-    current_savings: "",
-    financial_goal: "",
-    risk_appetite: "",
+    monthlyIncome: "",
+    monthlyExpenses: "",
+    currentSavings: "",
+    financialGoal: "",
+    riskAppetite: "",
   });
 
   // Derived
-  const income   = Number(form.monthly_income)   || 0;
-  const expenses = Number(form.monthly_expenses) || 0;
+  const income   = Number(form.monthlyIncome)   || 0;
+  const expenses = Number(form.monthlyExpenses) || 0;
   const surplus  = Math.max(0, income - expenses);
 
   // ── Field helpers ─────────────────────────────────────────────
@@ -116,10 +116,10 @@ export default function OnboardingPage() {
 
   // ── Validation per step ───────────────────────────────────────
   const isStepValid = (): boolean => {
-    if (step === 1) return Number(form.monthly_income) > 0;
-    if (step === 2) return Number(form.monthly_expenses) >= 0 && form.monthly_expenses !== "";
-    if (step === 3) return form.risk_appetite !== "";
-    if (step === 4) return form.financial_goal !== "";
+    if (step === 1) return Number(form.monthlyIncome) > 0;
+    if (step === 2) return Number(form.monthlyExpenses) >= 0 && form.monthlyExpenses !== "";
+    if (step === 3) return form.riskAppetite !== "";
+    if (step === 4) return form.financialGoal !== "";
     return false;
   };
 
@@ -134,11 +134,11 @@ export default function OnboardingPage() {
     setServerError("");
     try {
       const payload = {
-        monthly_income:   Number(form.monthly_income),
-        monthly_expenses: Number(form.monthly_expenses),
-        current_savings:  Number(form.current_savings) || 0,
-        financial_goal:   form.financial_goal || null,
-        risk_appetite:    form.risk_appetite as RiskLevel,
+        monthlyIncome:   Number(form.monthlyIncome),
+        monthlyExpenses: Number(form.monthlyExpenses),
+        currentSavings:  Number(form.currentSavings) || 0,
+        financialGoal:   form.financialGoal || null,
+        riskAppetite:    form.riskAppetite as RiskLevel,
       };
       const token = accessToken ?? useStore.getState().accessToken;
       if (token) {
@@ -147,9 +147,7 @@ export default function OnboardingPage() {
       setDone(true);
       setTimeout(() => router.push("/dashboard"), 2000);
     } catch (e: any) {
-      // If backend is down, still proceed — profile can be set later
-      setDone(true);
-      setTimeout(() => router.push("/dashboard"), 2000);
+      setServerError(e?.message ?? "Unable to save your profile. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -290,12 +288,12 @@ export default function OnboardingPage() {
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-sm font-medium">₹</span>
                     <input
-                      id="monthly_income"
+                      id="monthlyIncome"
                       type="number"
                       min={0}
                       placeholder="e.g. 80000"
-                      value={form.monthly_income}
-                      onChange={setNum("monthly_income")}
+                      value={form.monthlyIncome}
+                      onChange={setNum("monthlyIncome")}
                       className="auth-input pl-8"
                       autoFocus
                     />
@@ -305,12 +303,12 @@ export default function OnboardingPage() {
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-sm font-medium">₹</span>
                     <input
-                      id="current_savings"
+                      id="currentSavings"
                       type="number"
                       min={0}
                       placeholder="e.g. 200000"
-                      value={form.current_savings}
-                      onChange={setNum("current_savings")}
+                      value={form.currentSavings}
+                      onChange={setNum("currentSavings")}
                       className="auth-input pl-8"
                     />
                   </div>
@@ -350,19 +348,19 @@ export default function OnboardingPage() {
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-sm font-medium">₹</span>
                     <input
-                      id="monthly_expenses"
+                      id="monthlyExpenses"
                       type="number"
                       min={0}
                       placeholder="e.g. 45000"
-                      value={form.monthly_expenses}
-                      onChange={setNum("monthly_expenses")}
+                      value={form.monthlyExpenses}
+                      onChange={setNum("monthlyExpenses")}
                       className="auth-input pl-8"
                       autoFocus
                     />
                   </div>
 
                   {/* Surplus preview */}
-                  {form.monthly_expenses !== "" && (
+                  {form.monthlyExpenses !== "" && (
                     <motion.div
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -414,21 +412,21 @@ export default function OnboardingPage() {
                       <label key={opt.value} className="cursor-pointer block group">
                         <input
                           type="radio"
-                          name="risk_appetite"
+                          name="riskAppetite"
                           value={opt.value}
-                          checked={form.risk_appetite === opt.value}
-                          onChange={() => setForm((f) => ({ ...f, risk_appetite: opt.value }))}
+                          checked={form.riskAppetite === opt.value}
+                          onChange={() => setForm((f) => ({ ...f, riskAppetite: opt.value }))}
                           className="sr-only peer"
                         />
                         <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all duration-200
-                          ${form.risk_appetite === opt.value
+                          ${form.riskAppetite === opt.value
                             ? opt.value === "LOW"    ? "border-emerald-400/50 bg-emerald-400/8"
                             : opt.value === "MEDIUM" ? "border-gold/50 bg-gold/8"
                             :                         "border-orange-400/50 bg-orange-400/8"
                             : "border-white/8 bg-white/[0.02] hover:border-white/15"}
                         `}>
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                            form.risk_appetite === opt.value
+                            form.riskAppetite === opt.value
                               ? opt.value === "LOW"    ? "bg-emerald-400/20 text-emerald-400"
                               : opt.value === "MEDIUM" ? "bg-gold/20 text-gold"
                               :                         "bg-orange-400/20 text-orange-400"
@@ -441,7 +439,7 @@ export default function OnboardingPage() {
                             <p className="text-white/40 text-xs mt-0.5">{opt.desc}</p>
                           </div>
                           <div className={`w-4 h-4 rounded-full border-2 shrink-0 transition-all ${
-                            form.risk_appetite === opt.value
+                            form.riskAppetite === opt.value
                               ? opt.value === "LOW"    ? "border-emerald-400 bg-emerald-400"
                               : opt.value === "MEDIUM" ? "border-gold bg-gold"
                               :                          "border-orange-400 bg-orange-400"
@@ -475,24 +473,24 @@ export default function OnboardingPage() {
                       <label key={opt.value} className="cursor-pointer">
                         <input
                           type="radio"
-                          name="financial_goal"
+                          name="financialGoal"
                           value={opt.value}
-                          checked={form.financial_goal === opt.value}
-                          onChange={() => setForm((f) => ({ ...f, financial_goal: opt.value }))}
+                          checked={form.financialGoal === opt.value}
+                          onChange={() => setForm((f) => ({ ...f, financialGoal: opt.value }))}
                           className="sr-only"
                         />
                         <div className={`p-4 rounded-2xl border transition-all duration-200 ${
-                          form.financial_goal === opt.value
+                          form.financialGoal === opt.value
                             ? "border-gold/50 bg-gold/8"
                             : "border-white/8 bg-white/[0.02] hover:border-white/15"
                         }`}>
                           <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${
-                            form.financial_goal === opt.value ? "bg-gold/20 text-gold" : "bg-white/5 text-white/30"
+                            form.financialGoal === opt.value ? "bg-gold/20 text-gold" : "bg-white/5 text-white/30"
                           }`}>
                             <opt.Icon size={18} />
                           </div>
                           <p className={`text-xs font-semibold leading-tight transition-colors ${
-                            form.financial_goal === opt.value ? "text-gold" : "text-white/70"
+                            form.financialGoal === opt.value ? "text-gold" : "text-white/70"
                           }`}>{opt.label}</p>
                           <p className="text-white/30 text-[10px] mt-1 leading-tight">{opt.desc}</p>
                         </div>
