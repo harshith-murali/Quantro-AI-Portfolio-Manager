@@ -34,9 +34,23 @@ model User {
   transactions     Transaction[]
   insightLogs      InsightLog[]
   portfolioSummary PortfolioSummary?
+  watchlistItems   WatchlistItem[]
 
   @@index([email])
   @@map("users")
+}
+
+model WatchlistItem {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  symbol    String   @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@index([userId])
+  @@index([symbol])
+  @@map("watchlist_items")
 }
 
 model RefreshToken {
@@ -221,4 +235,3 @@ model PortfolioSummary {
 
   @@map("portfolio_summaries")
 }
-

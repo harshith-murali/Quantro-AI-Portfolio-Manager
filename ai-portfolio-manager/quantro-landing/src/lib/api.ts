@@ -198,6 +198,15 @@ export const api = {
       fetchAPI<any>(`/transactions/${id}`, {}, token),
   },
 
+  watchlist: {
+    list: (token: string) =>
+      fetchAPI<any>("/watchlist", {}, token),
+    add: (symbol: string, token: string) =>
+      fetchAPI<any>("/watchlist", { method: "POST", body: JSON.stringify({ symbol }) }, token),
+    remove: (symbol: string, token: string) =>
+      fetchAPI<void>(`/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" }, token),
+  },
+
   // ─── AI Insights ────────────────────────────────────────────────
   // Backend: POST /insights/portfolio-summary
   // Backend: POST /insights/stock/:symbol
