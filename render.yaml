@@ -29,6 +29,10 @@ services:
         value: "10"
       - key: EMAIL_OTP_RESEND_COOLDOWN_SECONDS
         value: "60"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: "Quantro <onboarding@resend.dev>"
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

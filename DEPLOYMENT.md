@@ -35,17 +35,15 @@ ANTHROPIC_API_KEY=optional-anthropic-key
 BYPASS_MARKET_HOURS=true
 ```
 
-To require OTP verification for new registrations, also configure SMTP and enable the feature:
+To require OTP verification for new registrations, configure Resend and enable the feature:
 
 ```env
 EMAIL_VERIFICATION_ENABLED=true
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your-smtp-user
-SMTP_PASS=your-smtp-password
-SMTP_FROM="Quantro <no-reply@your-domain.com>"
+RESEND_API_KEY=your-resend-api-key
+EMAIL_FROM="Quantro <onboarding@resend.dev>"
 ```
+
+SMTP settings are still supported as a fallback if `RESEND_API_KEY` is not set.
 
 The Blueprint already sets:
 
@@ -58,6 +56,7 @@ MARKET_DATA_MAX_STALENESS_DAYS=10
 EMAIL_VERIFICATION_ENABLED=false
 EMAIL_OTP_EXPIRY_MINUTES=10
 EMAIL_OTP_RESEND_COOLDOWN_SECONDS=60
+EMAIL_FROM="Quantro <onboarding@resend.dev>"
 ```
 
 For separate Vercel and Render domains, `REFRESH_COOKIE_SAMESITE=none` is required so refresh-token cookies are sent on cross-site API requests. Render serves HTTPS, so the backend will also set `Secure` cookies in production.

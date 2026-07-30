@@ -12,15 +12,57 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+const resendEmailsUrl = 'https://api.resend.com/emails';
+
+function getEmailFrom(): string | undefined {
+  return env.EMAIL_FROM ?? env.SMTP_FROM;
+}
+
 function assertEmailConfigured(): void {
+  if (env.RESEND_API_KEY && getEmailFrom()) return;
+
   if (!env.SMTP_HOST || !env.SMTP_USER || !env.SMTP_PASS || !env.SMTP_FROM) {
     throw new AppError('Email verification is not configured', 503);
   }
 }
 
-export async function sendVerificationOtp(email: string, name: string, otp: string): Promise<void> {
-  assertEmailConfigured();
-  const safeName = escapeHtml(name);
+async function sendWithResend(email: string, subject: string, text: string, html: string): Promise<void> {
+  const from = getEmailFrom();
+  if (!env.RESEND_API_KEY || !from) {
+    throw new AppError('Email verification is not configured', 503);
+  }
+
+  const response = await fetch(resendEmailsUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'quantro-api/1.0',
+    },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject,
+      text,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    logger.error('Resend email API rejected verification email', {
+      email,
+      status: response.status,
+      errorBody,
+    });
+    throw new AppError('Unable to send verification email. Please try again shortly.', 503);
+  }
+}
+
+async function sendWithSmtp(email: string, subject: string, text: string, html: string): Promise<void> {
+  if (!env.SMTP_HOST || !env.SMTP_USER || !env.SMTP_PASS || !env.SMTP_FROM) {
+    throw new AppError('Email verification is not configured', 503);
+  }
 
   const transporter = nodemailer.createTransport({
     host: env.SMTP_HOST,
@@ -35,25 +77,39 @@ export async function sendVerificationOtp(email: string, name: string, otp: stri
     },
   });
 
+  await transporter.sendMail({
+    from: env.SMTP_FROM,
+    to: email,
+    subject,
+    text,
+    html,
+  });
+}
+
+export async function sendVerificationOtp(email: string, name: string, otp: string): Promise<void> {
+  assertEmailConfigured();
+  const safeName = escapeHtml(name);
+  const subject = 'Verify your Quantro account';
+  const text = `Hi ${name},\n\nYour Quantro verification code is ${otp}.\n\nThis code expires in ${env.EMAIL_OTP_EXPIRY_MINUTES} minutes.\n\nIf you did not create this account, you can ignore this email.`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #111827;">
+      <h2 style="margin-bottom: 12px;">Verify your Quantro account</h2>
+      <p>Hi ${safeName},</p>
+      <p>Use this one-time code to verify your email address:</p>
+      <div style="font-size: 32px; letter-spacing: 8px; font-weight: 700; margin: 24px 0; padding: 18px 24px; background: #f3f4f6; border-radius: 10px; text-align: center;">
+        ${otp}
+      </div>
+      <p>This code expires in ${env.EMAIL_OTP_EXPIRY_MINUTES} minutes.</p>
+      <p style="color: #6b7280; font-size: 13px;">If you did not create this account, you can ignore this email.</p>
+    </div>
+  `;
+
   try {
-    await transporter.sendMail({
-      from: env.SMTP_FROM,
-      to: email,
-      subject: 'Verify your Quantro account',
-      text: `Hi ${name},\n\nYour Quantro verification code is ${otp}.\n\nThis code expires in ${env.EMAIL_OTP_EXPIRY_MINUTES} minutes.\n\nIf you did not create this account, you can ignore this email.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #111827;">
-          <h2 style="margin-bottom: 12px;">Verify your Quantro account</h2>
-          <p>Hi ${safeName},</p>
-          <p>Use this one-time code to verify your email address:</p>
-          <div style="font-size: 32px; letter-spacing: 8px; font-weight: 700; margin: 24px 0; padding: 18px 24px; background: #f3f4f6; border-radius: 10px; text-align: center;">
-            ${otp}
-          </div>
-          <p>This code expires in ${env.EMAIL_OTP_EXPIRY_MINUTES} minutes.</p>
-          <p style="color: #6b7280; font-size: 13px;">If you did not create this account, you can ignore this email.</p>
-        </div>
-      `,
-    });
+    if (env.RESEND_API_KEY) {
+      await sendWithResend(email, subject, text, html);
+    } else {
+      await sendWithSmtp(email, subject, text, html);
+    }
   } catch (error) {
     logger.error('Failed to send verification OTP email', { email, error });
     throw new AppError('Unable to send verification email. Please try again shortly.', 503);
