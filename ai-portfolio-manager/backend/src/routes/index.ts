@@ -10,6 +10,7 @@ import recommendationsRouter from '@/routes/recommendations.routes';
 import summaryRouter from '@/routes/summary.routes';
 import backtestRouter from '@/routes/backtest.routes';
 import marketRouter from '@/routes/market.routes';
+import signalsRouter from '@/routes/signals.routes';
 import { verifyAccessTokenMiddleware } from '@/middlewares/verifyAccessToken';
 import { verifyAdmin } from '@/middlewares/verifyAdmin';
 import { asyncHandler } from '@/middlewares/asyncHandler';
@@ -71,6 +72,7 @@ router.use('/recommendations', recommendationsRouter);
 router.use('/summary', summaryRouter);
 router.use('/backtest', backtestRouter);
 router.use('/market', marketRouter);
+router.use('/signals', signalsRouter);
 
 // ─── Portfolio & Trading routes ────────────────────────────────────
 router.use('/', portfolioRouter);

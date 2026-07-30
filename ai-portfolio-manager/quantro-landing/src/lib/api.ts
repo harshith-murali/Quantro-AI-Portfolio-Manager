@@ -225,12 +225,11 @@ export const api = {
   },
 
   // ─── Signals ──────────────────────────────────────────────────────
-  // Signal metadata is still mock-served; OHLCV data comes from the
-  // backend /ohlcv route which reads pre-loaded CSVs from AWS S3.
   signals: {
-    list: async (_token: string): Promise<any[]> => MOCK_SIGNALS,
-    get:  async (symbol: string, _token: string): Promise<any> =>
-      MOCK_SIGNALS.find((s) => s.symbol === symbol) ?? null,
+    list: async (token: string): Promise<any[]> =>
+      fetchAPI<any>("/signals", {}, token).then((d: any) => d.signals ?? []),
+    get:  async (symbol: string, token: string): Promise<any> =>
+      fetchAPI<any>(`/signals/${symbol}`, {}, token).then((d: any) => d.signal ?? null),
 
     /**
      * Fetch real OHLCV data from the backend (AWS S3 via /api/ohlcv).
@@ -293,15 +292,3 @@ export const api = {
     get: async (_id: string, _token: string): Promise<any> => null,
   },
 };
-
-// ─── Shared mock signal data ─────────────────────────────────────
-export const MOCK_SIGNALS = [
-  { symbol: "RELIANCE", signal: "BUY",  suitabilityScore: 92, suggestedAllocation: 50000, rsi: 28.5, macd: -1.2, currentPrice: 2845.50, changePercent: -1.4, rationale: "RSI oversold at major support. High conviction reversal setup." },
-  { symbol: "ZOMATO",   signal: "BUY",  suitabilityScore: 85, suggestedAllocation: 25000, rsi: 35.2, macd: 0.8,  currentPrice: 154.20,  changePercent: 3.2,  rationale: "Breaking out of consolidation with volume expansion." },
-  { symbol: "TCS",      signal: "HOLD", suitabilityScore: 78, suggestedAllocation: 0,     rsi: 55.4, macd: 2.1,  currentPrice: 3920.00, changePercent: 0.5,  rationale: "Range-bound. Await clear breakout above 4000." },
-  { symbol: "HDFCBANK", signal: "SELL", suitabilityScore: 45, suggestedAllocation: 0,     rsi: 74.5, macd: 5.4,  currentPrice: 1680.75, changePercent: 1.8,  rationale: "Overbought on RSI, momentum slowing near resistance." },
-  { symbol: "INFY",     signal: "BUY",  suitabilityScore: 88, suggestedAllocation: 40000, rsi: 32.1, macd: -0.5, currentPrice: 1425.30, changePercent: -2.1, rationale: "Mean reversion at 200 DMA with RSI oversold signal." },
-  { symbol: "WIPRO",    signal: "BUY",  suitabilityScore: 81, suggestedAllocation: 20000, rsi: 31.0, macd: -0.3, currentPrice: 468.50,  changePercent: -1.8, rationale: "Accumulation zone with improving MACD divergence." },
-  { symbol: "SUNPHARMA",signal: "HOLD", suitabilityScore: 72, suggestedAllocation: 0,     rsi: 52.0, macd: 1.2,  currentPrice: 1598.00, changePercent: 0.3,  rationale: "Neutral technicals — watch for sector rotation cue." },
-  { symbol: "SBIN",     signal: "BUY",  suitabilityScore: 79, suggestedAllocation: 30000, rsi: 36.5, macd: 0.5,  currentPrice: 812.40,  changePercent: 0.9,  rationale: "Public sector banking showing relative strength." },
-];
