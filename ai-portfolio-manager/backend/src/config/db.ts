@@ -9,7 +9,11 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const isRds = process.env.DATABASE_URL?.includes('rds.amazonaws.com') || process.env.DATABASE_URL?.includes('sslmode=');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: isRds ? { rejectUnauthorized: false } : undefined,
+});
 const adapter = new PrismaPg(pool);
 
 const prisma: PrismaClient =

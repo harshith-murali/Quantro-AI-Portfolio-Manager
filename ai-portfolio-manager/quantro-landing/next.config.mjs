@@ -1,5 +1,4 @@
-/** @type {import('next').NextConfig} */
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:3001";
+const BACKEND_URL = process.env.BACKEND_URL ?? "http://13.211.53.39:8080";
 
 const nextConfig = {
   reactStrictMode: true,

@@ -1,0 +1,13 @@
+services:
+  quantro-backend:
+    build:
+      context: .
+    container_name: quantro-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.production
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3" }
