@@ -5,248 +5,218 @@
   <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
   <img src="https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white" />
   <img src="https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white" />
+  <img src="https://img.shields.io/badge/AWS_S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white" />
   <img src="https://img.shields.io/badge/Recharts-FF6384?style=for-the-badge" />
 </p>
 
-# Quantro — AI Portfolio Manager
+# Quantro — AI Portfolio Manager & Backtesting Platform
 
-> An intelligent, full-stack stock portfolio platform that helps beginner investors understand how much they can safely invest, explore AI-driven stock recommendations, simulate trades, run backtests, and monitor their portfolio — all in a stunning, premium dark-mode interface.
+> An intelligent, full-stack stock portfolio platform tailored for the Indian stock market (NSE). Helps investors understand risk exposure, explore AI-driven stock recommendations, execute simulated trades with transparent fees, run deterministic SMA crossover backtests, and monitor portfolios — all wrapped in a high-contrast dark-mode interface.
+
+🔗 **Live Demo:** [quantro-landing.vercel.app](https://quantro-landing.vercel.app)  
+📦 **Repository:** [github.com/harshith-murali/Quantro-AI-Portfolio-Manager](https://github.com/harshith-murali/Quantro-AI-Portfolio-Manager)
 
 ---
 
-## Key Features
+## 🌟 Key Features
 
-### Smart Dashboard
-- **Portfolio vs NIFTY 50** real-time comparison chart
-- KPI cards showing total value, P&L, day change, and win rate
-- Sector-wise allocation donut chart
-- Animated search bar with stock suggestions dropdown
+### 📊 Smart Dashboard
+- **Portfolio vs NIFTY 50** real-time comparison chart with performance differential
+- Key KPI cards: Total Value, P&L (₹ and %), Day Change, and Win Rate
+- Sector-wise allocation donut chart (IT, Financials, Energy, Auto, FMCG)
+- Animated search bar with instant stock suggestions and day-change badges
 
-### AI Advisor
-- Natural language chat interface powered by AI
-- Personalized investment advice based on risk profile
-- Explains complex signals in simple terms
+### 🤖 AI Financial Advisor
+- Natural language chat interface grounded in the user's current portfolio holdings and risk profile
+- Multi-agent architecture with private VPC / Hugging Face inference endpoints
+- Redis token-bucket rate limiters protecting against prompt injection and quota exhaustion
+- Translates technical signals and macro trends into actionable advice
 
-### Signal Engine
-- AI-generated BUY / HOLD / SELL signals for 50+ NSE stocks
-- Technical indicators: RSI, MACD, SMA crossovers
-- Suitability scoring (0–100) based on user risk profile
-- Per-stock signal detail page with full technical breakdown
+### ⚡ Signal Engine
+- Technical BUY / HOLD / SELL signals for 50+ NSE stocks
+- Real-time technical indicators: 20/50 SMA crossovers, RSI(14), and MACD histogram
+- Dynamic suitability scoring (0–100) based on investor risk profile (Conservative, Moderate, Aggressive)
+- Per-stock technical breakdown detail view with interactive charts
 
-### Portfolio Management
-- Real-time portfolio tracking with holdings breakdown
-- **Trade simulation** with interactive Buy/Sell modals
-- **Platform fee**: 0.1% or ₹20 minimum (whichever is higher)
-- Trade history ledger with **Excel (.xlsx) export**
-- Fee transparency — every trade shows subtotal, fee, and total
+### 💼 Portfolio Management & Trade Simulation
+- Real-time holding allocations with live profit/loss computation
+- **Trade simulation** with interactive Buy/Sell modals backed by PostgreSQL transactions
+- **Transparent fee model**: 0.1% or ₹20 minimum per executed trade
+- Complete transaction ledger with one-click **Excel (.xlsx)** export via SheetJS
+- Atomic cash wallet deduction: balance rollback if funds are insufficient
 
-### AI Watchlist
-- Add stocks for continuous AI monitoring
-- Status indicators: All Clear, Watch, Action Needed
-- AI-generated notes explaining each alert
-- One-click add from search dropdown
-
-### Backtesting Engine
-- SMA Crossover strategy simulation on historical NSE data
-- **5 free backtests**, then ₹49/run premium pricing
-- Equity curve, drawdown chart, monthly returns heatmap
+### 📈 Deterministic Backtesting Engine
+- SMA Crossover strategy simulation executed over chronological OHLCV historical series
+- Configurable short/long moving average windows (e.g., 20/50 days) and starting capital
+- Visualizations: Equity curve, drawdown chart, and monthly returns heatmap
 - Strategy vs Buy & Hold benchmark comparison
-- Full trade table, Sharpe ratio, CAGR, win rate metrics
+- Key quantitative metrics: CAGR, Sharpe Ratio, Win Rate, and Maximum Drawdown (MDD)
+- Freemium model: 5 complimentary backtests, then pay-per-run
 
-### Agentic AI Data Pipeline
-- Automated daily workflow executing at 5:30 PM
-- **GitHub Actions** and **AWS Lambda** functions work in tandem to securely orchestrate and fetch end-of-day market data directly from Yahoo Finance
-- Stores raw OHLCV market data securely in **AWS S3**
-- Automatically recalculates portfolio P&L and updates metrics based on the latest closing prices
+### 🔄 Agentic EOD Data Ingestion Pipeline
+- Scheduled automated workflow executing at 5:30 PM IST (post-NSE market close)
+- Orchestrated by a multi-tier `SupervisorAgent` checking market holiday calendars
+- Fetches verified OHLCV market data and archives processed CSV datasets into an **AWS S3** data lake
+- Three-tier status model (`COMPLETE`, `PARTIAL`, `HOLIDAY/FAILED`) with 10-minute backoff retries
+- Recalculates portfolio P&L and updates metrics across all accounts
 
-### Wallet System
-- Virtual wallet with deposit/withdraw functionality
-- Transaction history with running balance
-- Supports trade execution from wallet balance
-
-### Smart Search
-- Global search dropdown in navbar with **45+ Indian stocks**
-- Shows trending stocks by sector on focus
-- Real-time filtering by symbol or company name
-- Day change % indicators on every result
+### 💳 Virtual Wallet System
+- Deposit and withdrawal workflows with atomic ledger tracking
+- Real-time running balance calculation
+- Seamless integration with trade simulation execution
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-| Layer        | Technology                                              |
-|-------------|--------------------------------------------------------|
-| **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS         |
-| **Charts**   | Recharts (Area, Line, Bar, Pie, Composed)               |
-| **Animations** | Framer Motion, CSS transitions                        |
-| **Backend**  | Node.js, Express, Prisma ORM                            |
-| **Database** | PostgreSQL 18                                           |
-| **Auth**     | JWT (access + refresh tokens), bcrypt                   |
-| **Compute**  | AWS Lambda (Serverless data ingestion)                  |
-| **Storage**  | AWS S3 (Historical Market Data Storage)                 |
-| **Cache**    | Redis (Caching & Rate Limiting, currently mocked)       |
-| **Export**   | SheetJS (xlsx) for Excel report generation              |
-| **State**    | Zustand (with persistence)                              |
+| Layer | Technology |
+|---|---|
+| **Frontend** | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS |
+| **Visualizations** | Recharts (Area, Line, Bar, Pie, Composed charts) |
+| **Animations** | Framer Motion, CSS micro-interactions |
+| **Backend API** | Node.js, Express.js, TypeScript |
+| **Database & ORM** | PostgreSQL 16+, Prisma ORM |
+| **Authentication** | JWT (15-min Access Token + 7-day HttpOnly Refresh Token), bcrypt |
+| **Compute & Pipeline** | AWS Lambda, GitHub Actions automated cron |
+| **Data Lake** | AWS S3 (Historical OHLCV CSV archives) |
+| **Caching & Limits** | Redis (token bucket rate limiting & query caching) |
+| **State Management** | Zustand (with local storage persistence) |
+| **Reports** | SheetJS (`xlsx`) for Excel ledger exports |
 
 ---
 
-## Project Structure
+## 📂 Project Structure
 
-```
-ai-portfolio-manager/
-├── README.md                    # This file
-├── backend/                     # Express API server
-│   ├── src/
-│   │   ├── server.ts            # App bootstrap & routes
-│   │   ├── routes/              # Auth, portfolio, signals, backtest
-│   │   ├── services/            # Business logic
-│   │   └── middleware/          # JWT auth middleware
-│   ├── prisma/
-│   │   └── schema.prisma        # Database schema
-│   └── .env                     # DB connection & JWT secrets
-├── quantro-landing/             # Next.js frontend
-│   ├── src/
-│   │   ├── app/                 # Pages (App Router)
-│   │   │   ├── dashboard/       # Main dashboard
-│   │   │   ├── signals/         # Signal list + [symbol] detail
-│   │   │   ├── portfolio/       # Portfolio + trade history
-│   │   │   ├── watchlist/       # AI watchlist
-│   │   │   ├── backtest/        # Backtesting engine
-│   │   │   ├── wallet/          # Wallet management
-│   │   │   ├── ai/              # AI advisor chat
-│   │   │   ├── profile/         # User profile
-│   │   │   └── auth/            # Login & register
-│   │   ├── components/          # Shared UI components
-│   │   │   ├── Navbar.tsx       # Global nav with search dropdown
-│   │   │   ├── FeatureShowcase  # Landing page showcase
-│   │   │   └── dashboard/       # Dashboard-specific components
-│   │   └── lib/                 # Utilities
-│   │       ├── api.ts           # API client
-│   │       ├── store.ts         # Zustand state management
-│   │       ├── stockData.ts     # 45+ stock database
-│   │       ├── types.ts         # TypeScript interfaces
-│   │       └── validations.ts   # Zod schemas
-│   └── .env                     # API URL config
+```text
+quantro/
+├── README.md                              # Main platform documentation
+├── .github/workflows/                     # EOD data pipeline automation
+└── ai-portfolio-manager/
+    ├── backend/                           # Express + Prisma REST API
+    │   ├── src/
+    │   │   ├── server.ts                  # Server bootstrap & middleware
+    │   │   ├── routes/                    # Auth, portfolio, signals, backtest, wallet
+    │   │   ├── controllers/               # Request handling & input validation
+    │   │   ├── services/                  # Business logic (trade execution, backtesting)
+    │   │   ├── middlewares/               # JWT auth, rate limiter, error handler
+    │   │   └── config/                    # Environment schema & Prisma client
+    │   ├── prisma/
+    │   │   ├── schema.prisma              # Database schema & relationships
+    │   │   └── seed.ts                    # Test accounts & stock seeds
+    │   ├── Dockerfile                     # Backend containerization
+    │   └── package.json
+    └── quantro-landing/                   # Next.js 14 frontend application
+        ├── src/
+        │   ├── app/                       # App Router pages
+        │   │   ├── dashboard/             # Core overview & analytics
+        │   │   ├── signals/               # Stock signals & [symbol] detail view
+        │   │   ├── portfolio/             # Holdings & trade history ledger
+        │   │   ├── watchlist/             # Monitored stock alerts
+        │   │   ├── backtest/              # SMA strategy backtesting UI
+        │   │   ├── wallet/                # Virtual wallet management
+        │   │   ├── ai/                    # Natural language AI advisor chat
+        │   │   └── auth/                  # Login & registration flows
+        │   ├── components/                # Reusable UI & chart components
+        │   └── lib/                       # API clients, Zustand store, stock datasets
+        └── package.json
 ```
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-- **Node.js** ≥ 18
-- **PostgreSQL** ≥ 14
+- **Node.js** ≥ 18.x
+- **PostgreSQL** ≥ 14.x (or Docker)
 - **npm** or **yarn**
 
-### 1. Clone the repository
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/<your-username>/ai-portfolio-manager.git
-cd ai-portfolio-manager
+git clone https://github.com/harshith-murali/Quantro-AI-Portfolio-Manager.git
+cd Quantro-AI-Portfolio-Manager
 ```
 
-### 2. Setup the database
+### 2. Configure the Database
+Create a PostgreSQL database:
 ```bash
-# Create the database
 psql -U postgres -c "CREATE DATABASE ai_portfolio_db;"
 ```
 
-### 3. Configure environment variables
+### 3. Setup Environment Variables
 
-**Backend** (`backend/.env`):
+**Backend (`ai-portfolio-manager/backend/.env`):**
 ```env
-DATABASE_URL="postgresql://postgres:1234@localhost:5432/ai_portfolio_db"
-JWT_SECRET="your-jwt-secret"
-JWT_REFRESH_SECRET="your-refresh-secret"
-PORT=3001
+NODE_ENV=development
+PORT=8080
+DATABASE_URL="postgresql://postgres:password@localhost:5432/ai_portfolio_db"
+ACCESS_TOKEN_SECRET="generate-with-openssl-rand-base64-64"
+REFRESH_TOKEN_SECRET="generate-different-secret-with-openssl-rand-base64-64"
+ACCESS_TOKEN_EXPIRY="15m"
+REFRESH_TOKEN_EXPIRY="7d"
+CORS_ORIGIN="http://localhost:3000"
 ```
 
-**Frontend** (`quantro-landing/.env`):
+**Frontend (`ai-portfolio-manager/quantro-landing/.env`):**
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_URL=http://localhost:8080/api
 ```
 
-### 4. Install dependencies & start
+### 4. Install Dependencies & Start Services
 
+**Terminal 1 — Backend API:**
 ```bash
-# Backend
-cd backend
+cd ai-portfolio-manager/backend
 npm install
-npx prisma migrate dev
+npm run db:migrate
+npm run db:seed      # Seeds demo users and default stock listings
 npm run dev
-
-# Frontend (new terminal)
-cd quantro-landing
-npm install
-npm run dev
+# Server running at http://localhost:8080
 ```
 
-### 5. Open the app
-Navigate to **http://localhost:3000** and register a new account.
+**Terminal 2 — Frontend Application:**
+```bash
+cd ai-portfolio-manager/quantro-landing
+npm install
+npm run dev
+# Frontend running at http://localhost:3000
+```
+
+### 5. Access the Platform
+Open **http://localhost:3000** in your browser. You can register a new account or sign in with seeded credentials:
+- `user@quantro.dev` / `Quantro@Secure123!`
+- `admin@quantro.dev` / `Quantro@Secure123!`
 
 ---
 
-## API Endpoints
+## 📡 REST API Reference
 
-| Method | Endpoint                  | Description                        | Auth |
-|--------|---------------------------|------------------------------------|------|
-| POST   | `/api/auth/register`       | Create new user account            | No   |
-| POST   | `/api/auth/login`          | Login & get tokens                 | No   |
-| POST   | `/api/auth/refresh`        | Refresh access token               | Yes  |
-| GET    | `/api/auth/me`             | Get current user profile           | Yes  |
-| POST   | `/api/auth/logout`         | Invalidate tokens                  | Yes  |
-| GET    | `/api/signals`             | Get AI stock signals               | Yes  |
-| GET    | `/api/signals/:symbol`     | Get detailed signal for a stock    | Yes  |
-| GET    | `/api/portfolio`           | Get portfolio snapshot             | Yes  |
-| POST   | `/api/portfolio/trade`     | Execute a trade (buy/sell)         | Yes  |
-| POST   | `/api/backtest`            | Run a backtest simulation          | Yes  |
-| GET    | `/api/wallet`              | Get wallet balance & transactions  | Yes  |
-| POST   | `/api/wallet/deposit`      | Add funds to wallet                | Yes  |
-| POST   | `/api/wallet/withdraw`     | Withdraw funds from wallet         | Yes  |
-
----
-
-## Design Principles
-
-- **Frontend-first**: Built to look & feel like a real product, not a school project
-- **Dark mode only**: High-contrast, premium quantro aesthetic with gold accents
-- **Glass morphism**: Frosted glass panels with subtle borders and backdrop blur
-- **Micro-animations**: Framer Motion for smooth page transitions and interactive feedback
-- **Data-dense**: Professional-grade charts and tables that show real metrics
-- **Mobile-responsive**: Adaptive layouts for all screen sizes
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Public | Create new investor account |
+| `POST` | `/api/auth/login` | Public | Authenticate and issue access + refresh cookies |
+| `POST` | `/api/auth/refresh` | Cookie | Rotate refresh token and issue new access token |
+| `POST` | `/api/auth/logout` | Bearer | Revoke current session and invalidate tokens |
+| `GET` | `/api/auth/me` | Bearer | Fetch current user profile and risk tier |
+| `GET` | `/api/signals` | Bearer | Fetch AI technical signals for monitored universe |
+| `GET` | `/api/signals/:symbol`| Bearer | Detailed technical breakdown (RSI, SMA, MACD) |
+| `GET` | `/api/portfolio` | Bearer | Fetch portfolio snapshot, holdings, and allocations |
+| `POST` | `/api/portfolio/trade` | Bearer | Execute atomic trade simulation (Buy/Sell) |
+| `POST` | `/api/backtest` | Bearer | Execute SMA crossover simulation over OHLCV data |
+| `GET` | `/api/wallet` | Bearer | Query wallet cash balance and transaction ledger |
+| `POST` | `/api/wallet/deposit` | Bearer | Deposit simulated cash funds |
+| `POST` | `/api/wallet/withdraw`| Bearer | Withdraw funds from available cash balance |
 
 ---
 
-## Security
+## 🔒 Security Architecture
 
-- JWT-based authentication with access + refresh token rotation
-- Passwords hashed with bcrypt (12 rounds)
-- Protected API routes via middleware
-- HTTP-only considerations for production deployment
-
----
-
-## Roadmap
-
-- [x] Dashboard with portfolio vs NIFTY chart
-- [x] AI signal engine with technical indicators
-- [x] Trade simulation with platform fees
-- [x] Backtesting with freemium pricing
-- [x] Excel ledger export
-- [x] AI Watchlist with monitoring alerts
-- [x] Smart search dropdown with 45+ stocks
-- [ ] Real-time WebSocket price updates
-- [ ] Options chain analysis
-- [ ] Multi-strategy backtesting
-- [ ] Push notifications for watchlist alerts
+- **Token Lifecycle**: Short-lived (15 min) HS256 access tokens paired with long-lived (7 day) refresh tokens stored as HttpOnly, Secure, SameSite=Strict cookies.
+- **Session Revocation & Reuse Detection**: Refresh tokens are cryptographically hashed (SHA-256) in PostgreSQL. If a revoked token is reused, all active sessions for that user are immediately invalidated.
+- **Password Security**: Passwords hashed with bcrypt using a workload factor of 12.
+- **Data Integrity**: Financial ledger transactions and virtual trades execute within isolated PostgreSQL transactions (`prisma.$transaction`) to prevent partial balance updates.
+- **Sanitization & Validation**: All incoming requests strictly validated using Zod schemas.
 
 ---
 
-## License
-
-This project is built for educational and demonstration purposes.
-
----
-
-<p align="center">
-  <sub>Built for the AI Portfolio Hackathon</sub>
-</p>
+## 📄 License
+This project is licensed under the MIT License. Built for demonstration and educational purposes.
