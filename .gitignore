@@ -24,3 +24,7 @@ logs/
 # Generated market/pipeline artifacts
 *.csv
 pipeline-artifact.md
+
+# Interview notes and internal audit documentation
+INTERVIEW_GUIDE.md
+AUDIT_IMPLEMENTATION.md

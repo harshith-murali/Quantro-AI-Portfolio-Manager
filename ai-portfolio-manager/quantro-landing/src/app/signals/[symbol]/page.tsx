@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
-import { STOCK_DATABASE } from "@/lib/stockData";
+import { useAuth } from "@/lib/useAuth";
 import type { StockSignal } from "@/lib/types";
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -23,43 +23,15 @@ import {
 } from "lucide-react";
 import { CandlestickChart } from "@/components/CandlestickChart";
 
-// NSE trading hours: 9:15 – 15:30 IST
-function isWithinTradingHours(): boolean {
-  const now = new Date();
-  const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-  const h = ist.getHours(), m = ist.getMinutes();
-  const mins = h * 60 + m;
-  return mins >= 9 * 60 + 15 && mins < 15 * 60 + 30;
-}
+// Virtual trades can be rehearsed outside market hours.
+function isWithinTradingHours() { return true; }
 
 type Tab = "Overview" | "Candlestick" | "Signals" | "Rationale" | "History";
 
-// Fallback: Generate OHLCV + Indicators data when real data isn't available
-function generateAdvancedMockData(basePrice: number) {
-  const points = 100;
-  const data = [];
-  let currentPrice = basePrice;
-  const now = new Date();
-
-  for (let i = points; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const open = currentPrice;
-    const volatility = basePrice * 0.02;
-    const high = open + Math.random() * volatility;
-    const low = open - Math.random() * volatility;
-    const close = low + Math.random() * (high - low);
-    currentPrice = close;
-    
-    const volume = Math.floor(Math.random() * 10000) + 5000;
-    data.push({ time, open, high, low, close, volume });
-  }
-  return data;
-}
-
 const RISK_LEVELS: Record<string, { label: string; color: string; bg: string }> = {
-  BUY:  { label: "Low Risk",  color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/30" },
-  HOLD: { label: "Med Risk",  color: "text-yellow-400",  bg: "bg-yellow-400/10 border-yellow-400/30" },
-  SELL: { label: "High Risk", color: "text-red-400",     bg: "bg-red-400/10 border-red-400/30" },
+  BUY:  { label: "Buy signal",  color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/30" },
+  HOLD: { label: "Hold signal",  color: "text-yellow-400",  bg: "bg-yellow-400/10 border-yellow-400/30" },
+  SELL: { label: "Sell signal", color: "text-red-400",     bg: "bg-red-400/10 border-red-400/30" },
 };
 
 const KEY_RISKS: Record<string, string[]> = {
@@ -72,7 +44,8 @@ export default function SignalDetailPage() {
   const params = useParams();
   const symbol = params.symbol as string;
   const router = useRouter();
-  const { accessToken, watchlist: watchlistArr, toggleWatchlist } = useStore();
+  const accessToken = useAuth();
+  const { watchlist: watchlistArr, toggleWatchlist } = useStore();
   const inWatchlist = watchlistArr.includes(symbol);
 
   const [signal, setSignal] = useState<StockSignal | null>(null);
@@ -94,74 +67,23 @@ export default function SignalDetailPage() {
   const [showTrend, setShowTrend] = useState(false);
 
   useEffect(() => {
-    if (!accessToken) { router.push("/auth/login"); return; }
-
-    // Helper: build a synthetic signal for any stock in the search database
-    const makeFallbackSignal = (sym: string): StockSignal => {
-      const info = STOCK_DATABASE.find(s => s.symbol === sym.toUpperCase());
-      const price = info?.price ?? (1000 + Math.random() * 3000);
-      const changePct = info?.changePct ?? (Math.random() - 0.5) * 4;
-      const rsi = 40 + Math.random() * 30;          // 40–70 (neutral)
-      const macd = (Math.random() - 0.5) * 3;
-      const score = Math.round(55 + Math.random() * 25);
-      return {
-        symbol: sym.toUpperCase(),
-        signal: rsi < 35 ? "BUY" : rsi > 65 ? "SELL" : "HOLD",
-        suitabilityScore: score,
-        suggestedAllocation: Math.round(score * 400),
-        rsi: parseFloat(rsi.toFixed(1)),
-        macd: parseFloat(macd.toFixed(3)),
-        currentPrice: parseFloat(price.toFixed(2)),
-        changePercent: parseFloat(changePct.toFixed(2)),
-        rationale: info
-          ? `${info.name} (${sym}) — live technicals not yet available. Showing estimated signal based on recent price action.`
-          : `${sym} — estimated signal based on recent price action.`,
-      };
-    };
-
-    api.signals.get(symbol, accessToken)
-      .then(async (s) => {
-        // If backend / mock list has no entry for this symbol, synthesise one
-        const resolved: StockSignal = s ?? makeFallbackSignal(symbol);
+    if (!accessToken) return;
+    let active = true;
+    setLoading(true);
+    setError("");
+    Promise.all([api.signals.get(symbol, accessToken), api.signals.ohlcv(symbol, accessToken, 1500)])
+      .then(([resolved, history]) => {
+        if (!active) return;
+        if (!resolved) throw new Error("Technical signal is unavailable. Please retry from Signals.");
         setSignal(resolved);
         setTradeType(resolved.signal === "SELL" ? "SELL" : "BUY");
-
-        // Fetch real OHLCV data from AWS S3 via backend
-        setOhlcvLoading(true);
-        try {
-          const realData = await api.signals.ohlcv(symbol, accessToken, 1500);
-          const basePrice = resolved.currentPrice;
-          if (realData && realData.length > 0) {
-            setAdvancedChartData(realData);
-            setPriceHistory(
-              realData.slice(-30).map((d: any, i: number) => ({
-                day: `D${i + 1}`,
-                price: parseFloat(Number(d.close).toFixed(2)),
-              }))
-            );
-          } else {
-            const mockData = generateAdvancedMockData(basePrice);
-            setAdvancedChartData(mockData);
-            setPriceHistory(mockData.slice(-30).map((d, i) => ({ day: `D${i + 1}`, price: parseFloat(d.close.toFixed(2)) })));
-          }
-        } catch {
-          const mockData = generateAdvancedMockData(resolved.currentPrice);
-          setAdvancedChartData(mockData);
-          setPriceHistory(mockData.slice(-30).map((d, i) => ({ day: `D${i + 1}`, price: parseFloat(d.close.toFixed(2)) })));
-        } finally {
-          setOhlcvLoading(false);
-        }
+        setAdvancedChartData(history);
+        setPriceHistory(history.slice(-30).map((d: any) => ({ day: d.time, price: Number(d.close) })));
+        if (!history.length) setError("Price history is temporarily unavailable. No simulated chart is shown.");
       })
-      .catch(() => {
-        // Even if api call fails entirely, show a synthesised signal
-        const fallback = makeFallbackSignal(symbol);
-        setSignal(fallback);
-        setTradeType(fallback.signal === "SELL" ? "SELL" : "BUY");
-        const mockData = generateAdvancedMockData(fallback.currentPrice);
-        setAdvancedChartData(mockData);
-        setPriceHistory(mockData.slice(-30).map((d, i) => ({ day: `D${i + 1}`, price: parseFloat(d.close.toFixed(2)) })));
-      })
-      .finally(() => setLoading(false));
+      .catch((e) => { if (active) { setSignal(null); setError(e.message || "Unable to load market data"); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [symbol, accessToken]);
 
   const handleTrade = async () => {
@@ -247,7 +169,7 @@ export default function SignalDetailPage() {
             </span>
             {/* Watchlist toggle */}
             <button
-              onClick={() => toggleWatchlist(symbol)}
+              onClick={async () => { if (!accessToken) return; try { if (inWatchlist) await api.watchlist.remove(symbol, accessToken); else await api.watchlist.add(symbol, accessToken); toggleWatchlist(symbol); } catch (e: any) { setError(e.message); } }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
                 inWatchlist
                   ? "border-gold/50 bg-gold/10 text-gold"
@@ -460,26 +382,10 @@ export default function SignalDetailPage() {
             {tab === "History" && (
               <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                 <div className="glass-card">
-                  <p className="text-white/40 text-[10px] uppercase tracking-wider mb-4">Signal History</p>
-                  <div className="space-y-3">
-                    {[
-                      { date: "15 May", signal: "BUY", price: (signal.currentPrice * 0.97).toFixed(0), rsi: "28.5" },
-                      { date: "10 May", signal: "HOLD", price: (signal.currentPrice * 1.02).toFixed(0), rsi: "52.1" },
-                      { date: "5 May",  signal: "SELL", price: (signal.currentPrice * 1.07).toFixed(0), rsi: "74.3" },
-                      { date: "28 Apr", signal: "BUY",  price: (signal.currentPrice * 0.94).toFixed(0), rsi: "26.8" },
-                    ].map(({ date, signal: sig, price, rsi }, i) => (
-                      <div key={i} className="flex items-center justify-between py-2.5 border-b border-white/5">
-                        <div className="flex items-center gap-3">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sig === "BUY" ? "text-emerald-400 bg-emerald-400/10" : sig === "SELL" ? "text-red-400 bg-red-400/10" : "text-white/40 bg-white/5"}`}>{sig}</span>
-                          <p className="text-white/60 text-sm">{date}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-white text-sm tabular-nums">₹{Number(price).toLocaleString("en-IN")}</p>
-                          <p className="text-white/30 text-xs">RSI {rsi}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-white/40 text-[10px] uppercase tracking-wider mb-4">Observed historical closes</p>
+                  <p className="text-white/50 text-sm mb-4">Past signal decisions are not stored. These are observed daily closes, not historical buy/sell recommendations.</p>
+                  {advancedChartData.slice(-10).reverse().map((bar: any) => <div key={bar.time} className="flex justify-between py-3 border-b border-white/10 text-white/70"><span>{bar.time}</span><span>₹{Number(bar.close).toLocaleString("en-IN")}</span></div>)}
+
                 </div>
               </motion.div>
             )}
@@ -531,7 +437,7 @@ export default function SignalDetailPage() {
             </div>
             {totalValue > 0 && (() => {
               const percentFee = totalValue * 0.001;
-              const fee = Math.max(percentFee, 20);
+              const fee = 0; // Paper trades have no fee; backtests model costs separately.
               return (
                 <>
                   <div className="flex justify-between text-sm">
@@ -539,7 +445,7 @@ export default function SignalDetailPage() {
                     <span className="text-white/60 tabular-nums">
                       ₹{fee.toFixed(2)}
                       <span className="text-white/20 ml-1 text-[10px]">
-                        ({percentFee >= 20 ? "0.1%" : "min ₹20"})
+                        (paper simulation)
                       </span>
                     </span>
                   </div>

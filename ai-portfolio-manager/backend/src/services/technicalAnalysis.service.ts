@@ -173,12 +173,10 @@ export async function getTechnicalSignal(symbol: string): Promise<StockSignal> {
 
 export async function listTechnicalSignals(limit = 50): Promise<StockSignal[]> {
   const signals: StockSignal[] = [];
-  for (const symbol of NIFTY_50_SYMBOLS.slice(0, limit)) {
-    try {
-      signals.push(await getTechnicalSignal(symbol));
-    } catch {
-      // Detail endpoint returns concrete data-coverage errors for a requested symbol.
-    }
+  // Bounded concurrency avoids a serial minute-long loading screen and provider bursts.
+  for (let offset = 0; offset < limit; offset += 5) {
+    const batch = await Promise.allSettled(NIFTY_50_SYMBOLS.slice(offset, Math.min(offset + 5, limit)).map(getTechnicalSignal));
+    for (const result of batch) if (result.status === 'fulfilled') signals.push(result.value);
   }
   return signals.sort((a, b) => b.suitabilityScore - a.suitabilityScore);
 }

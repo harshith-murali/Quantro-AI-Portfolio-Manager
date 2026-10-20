@@ -49,11 +49,12 @@ export async function askQuestion(req: Request, res: Response) {
   const userId = req.user!.id;
   const { question } = askInsightSchema.parse(req.body);
 
-  const insight = await InsightService.askGeneralQA(userId, question);
+  const result = await InsightService.askGeneralQA(userId, question);
 
   res.status(200).json(
     successResponse('General Q&A insight generated', {
-      insight,
+      insight: result.insight,
+      evidence: result.evidence,
       disclaimer: DISCLAIMER,
     })
   );

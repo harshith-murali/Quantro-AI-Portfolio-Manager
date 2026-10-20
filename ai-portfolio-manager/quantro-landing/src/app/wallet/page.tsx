@@ -65,6 +65,7 @@ export default function WalletPage() {
   const [balance, setBalance] = useState<number | null>(null);
   const [summary, setSummary] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadError,setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<"deposit" | "withdraw" | null>(null);
   const [amount, setAmount] = useState("");
@@ -74,7 +75,7 @@ export default function WalletPage() {
 
   const fetchAll = async (token: string) => {
     await Promise.allSettled([
-      api.wallet.balance(token).then((d) => setBalance(Number(d.balance ?? 0))).catch(() => {}),
+      api.wallet.balance(token).then((d) => setBalance(Number(d.balance ?? 0))).catch((e:any) => setLoadError(e.message)),
       api.transactions.summary(token)
         .then((d: any) => setSummary(d.summary ?? d)).catch(() => {}),
       api.transactions.list(token)
@@ -97,7 +98,7 @@ export default function WalletPage() {
       const fn = modal === "deposit" ? api.wallet.deposit : api.wallet.withdraw;
       const res = await fn({ amount: Number(amount) }, accessToken);
       const newBal = Number(res.balance ?? res.wallet?.balance ?? 0);
-      if (newBal) setBalance(newBal);
+      if (Number.isFinite(newBal)) setBalance(newBal);
       setActionMsg(modal === "deposit" ? `+₹${fmt(Number(amount))} added to wallet` : `₹${fmt(Number(amount))} withdrawn`);
       setAmount("");
       setTimeout(async () => {
@@ -247,26 +248,12 @@ export default function WalletPage() {
                     const dateStr = `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
 
                     if (isTrade) {
-                      // Platform fee entry
-                      const feePercent = amt * 0.001;
-                      const fee = Math.max(feePercent, 20);
-                      ledgerBalance -= fee;
-                      rows.push({
-                        particulars: `Being platform fee for ${dateStr}`,
-                        posting_date: dateStr,
-                        cost_center: "NSE-EQ - Z",
-                        voucher_type: "Journal Entry",
-                        debit: Number(fee.toFixed(2)),
-                        credit: 0,
-                        net_balance: Number(ledgerBalance.toFixed(2)),
-                      });
-
-                      // Net settlement entry
-                      const settlementNo = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}${Math.floor(Math.random() * 900 + 100)}`;
+                      // Use the persisted ledger reference; paper trades have no fee entry.
+                      const settlementNo = tx.id;
                       if (isCredit) {
                         ledgerBalance += amt;
                         rows.push({
-                          particulars: `Net settlement for Equity with settlement number: ${settlementNo}`,
+                          particulars: `Virtual equity transaction: ${settlementNo}`,
                           posting_date: dateStr,
                           cost_center: "NSE-EQ - Z",
                           voucher_type: "Book Voucher",
@@ -277,7 +264,7 @@ export default function WalletPage() {
                       } else {
                         ledgerBalance -= amt;
                         rows.push({
-                          particulars: `Net settlement for Equity with settlement number: ${settlementNo}`,
+                          particulars: `Virtual equity transaction: ${settlementNo}`,
                           posting_date: dateStr,
                           cost_center: "NSE-EQ - Z",
                           voucher_type: "Book Voucher",

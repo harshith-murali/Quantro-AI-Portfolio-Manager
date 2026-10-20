@@ -19,6 +19,8 @@ export interface JwtPayload {
   tokenVersion: number;
   /** Distinguishes access vs refresh tokens to prevent cross-use */
   type: 'access' | 'refresh';
+  /** Unique refresh-token ID; optional for tokens issued before this change. */
+  jti?: string;
   /** Issued-at (set by jsonwebtoken) */
   iat?: number;
   /** Expiry (set by jsonwebtoken) */

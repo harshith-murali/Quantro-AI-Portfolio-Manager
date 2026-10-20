@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { searchStocks, STOCK_DATABASE, type StockInfo } from "@/lib/stockData";
 
 interface WatchlistStock {
@@ -57,7 +58,7 @@ const STATUS_STYLES = {
 
 export default function WatchlistPage() {
   const router = useRouter();
-  const { accessToken } = useStore();
+  const accessToken = useAuth();
   const [watchlist, setWatchlist] = useState<WatchlistStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -66,7 +67,7 @@ export default function WatchlistPage() {
   const [filter, setFilter] = useState<"ALL" | "OK" | "WARNING" | "ALERT">("ALL");
 
   useEffect(() => {
-    if (!accessToken) { router.push("/auth/login"); return; }
+    if (!accessToken) return;
     fetchWatchlist(accessToken);
   }, [accessToken]);
 
@@ -101,8 +102,7 @@ export default function WatchlistPage() {
 
   const removeFromWatchlist = async (symbol: string) => {
     if (!accessToken) return;
-    await api.watchlist.remove(symbol, accessToken);
-    setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol));
+    try { await api.watchlist.remove(symbol, accessToken); setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol)); } catch(e:any) { setError(e.message); }
   };
 
   const addToWatchlist = async (sym?: string) => {

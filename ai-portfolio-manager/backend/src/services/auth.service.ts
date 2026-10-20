@@ -1,5 +1,5 @@
 import prisma from '@/config/db';
-import { hashPassword, comparePassword } from '@/utils/hash';
+import { hashPassword, comparePassword, hashToken } from '@/utils/hash';
 import { generateTokenPair, verifyRefreshToken } from '@/utils/jwt';
 import {
   createRefreshToken,
@@ -170,23 +170,20 @@ export async function refresh(
   // 1. Verify JWT signature and expiry
   const payload = verifyRefreshToken(rawRefreshToken);
 
-  // 2. Validate DB record (not revoked, not expired, tokenVersion match)
+  // Consume and replace the stored token atomically. UUID IDs keep concurrent
+  // logins distinct; the conditional update makes refresh tokens single-use.
   await validateRefreshTokenRecord(rawRefreshToken, payload.tokenVersion);
-
-  // 3. Rotate: revoke old token, issue new pair
-  await revokeRefreshToken(rawRefreshToken);
-
-  // Fetch fresh user data for the new token
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: payload.userId },
-    select: { id: true, role: true, tokenVersion: true },
+  const tokens = await prisma.$transaction(async tx => {
+    const consumed = await tx.refreshToken.updateMany({ where: { token: hashToken(rawRefreshToken), revoked: false, expiresAt: { gt: new Date() } }, data: { revoked: true } });
+    if (consumed.count !== 1) throw new AuthError('Refresh token has already been used.');
+    const user = await tx.user.findUniqueOrThrow({ where: { id: payload.userId }, select: { id: true, role: true, tokenVersion: true } });
+    if (user.tokenVersion !== payload.tokenVersion) throw new AuthError('Session invalidated.');
+    const next = generateTokenPair(user.id, user.role, user.tokenVersion);
+    const nextPayload = verifyRefreshToken(next.refreshToken);
+    await tx.refreshToken.create({ data: { userId: user.id, token: hashToken(next.refreshToken), expiresAt: new Date(nextPayload.exp! * 1000) } });
+    return next;
   });
-
-  const tokens = generateTokenPair(user.id, user.role, user.tokenVersion);
-  await createRefreshToken(user.id, tokens.refreshToken);
-
-  authLogger.tokenRefreshed(user.id);
-
+  authLogger.tokenRefreshed(payload.userId);
   return tokens;
 }
 

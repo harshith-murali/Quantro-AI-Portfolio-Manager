@@ -3,7 +3,13 @@ import prisma from '@/config/db';
 import redis from '@/config/redis';
 import { AppError } from '@/utils/AppError';
 import { logger } from '@/utils/logger';
-import { generateAIResponse } from '@/services/ai.service';
+import { generateAIResponse, AIResponseOptions } from '@/services/ai.service';
+import { parseRecommendations, recommendationOutputSchema } from '@/utils/recommendations';
+import { getLatestMarketPrice } from '@/services/marketPrice.service';
+import { getTechnicalSignal } from '@/services/technicalAnalysis.service';
+import { normalizeSymbol } from '@/utils/symbol';
+import { getSectorForSymbol } from '@/constants/sectors';
+import { createHash } from 'node:crypto';
 import { getPortfolioSummary as getStats } from '@/services/portfolio.service';
 import {
   buildPortfolioSummaryPrompt,
@@ -25,7 +31,7 @@ const NIFTY50_LIST = [
   { symbol: "HINDUNILVR", price: 2265.80 },
   { symbol: "ITC", price: 462.00 },
   { symbol: "SBIN", price: 812.40 },
-  { symbol: "LARSEN", price: 3510.60 },
+  { symbol: "LT", price: 3510.60 },
   { symbol: "BAJFINANCE", price: 6845.20 }
 ];
 
@@ -76,7 +82,8 @@ async function processInsight(
   userId: string,
   insightType: InsightType,
   prompt: string,
-  cacheKeySuffix: string
+  cacheKeySuffix: string,
+  options: AIResponseOptions = {}
 ): Promise<string> {
   const cacheKey = `insight:${insightType}:${userId}:${cacheKeySuffix}`;
 
@@ -85,7 +92,12 @@ async function processInsight(
     const cachedResponse = await redis.get(cacheKey);
     if (cachedResponse) {
       logger.info(`Cache hit for insight ${insightType} for user ${userId}`);
-      return cachedResponse;
+      try {
+        return options.validate ? options.validate(cachedResponse) : cachedResponse;
+      } catch {
+        // Discard legacy prose or malformed output instead of replaying it for an hour.
+        await redis.del(cacheKey);
+      }
     }
   } catch (err) {
     logger.warn('Redis cache get failed, bypassing cache.');
@@ -94,9 +106,9 @@ async function processInsight(
   // 2. Check Rate Limit (only count if we actually call the API)
   await checkRateLimit(userId);
 
-  // 3. Call Claude API
-  logger.info(`Calling Claude API for insight ${insightType} for user ${userId}`);
-  const response = await generateAIResponse(prompt);
+  // 3. Generate and validate before logging or caching
+  logger.info(`Calling AI provider for insight ${insightType} for user ${userId}`);
+  const response = await generateAIResponse(prompt, options);
 
   // 4. Log to Database
   await prisma.insightLog.create({
@@ -130,12 +142,8 @@ export async function getPortfolioSummary(userId: string): Promise<string> {
 export async function getStockAdvice(userId: string, symbol: string): Promise<string> {
   const { profile, holdings } = await getUserContext(userId);
   
-  // Mocking signal data for now
-  const signals = {
-    rsi: Math.floor(Math.random() * 100),
-    macd: (Math.random() * 4 - 2).toFixed(2),
-    sma50: (Math.random() * 100 + 100).toFixed(2),
-  };
+  const observed = await getTechnicalSignal(symbol);
+  const signals = { rsi: observed.rsi, macd: observed.macd, sma50: observed.sma50, marketDate: observed.marketDate, source: observed.dataSource };
 
   const prompt = buildStockAdvicePrompt(symbol.toUpperCase(), profile, holdings, signals);
   
@@ -149,15 +157,20 @@ export async function getRiskAnalysis(userId: string): Promise<string> {
   return processInsight(userId, 'RISK_ANALYSIS', prompt, 'risk');
 }
 
-export async function askGeneralQA(userId: string, question: string): Promise<string> {
+export async function askGeneralQA(userId: string, question: string) {
   const { profile, holdings } = await getUserContext(userId);
-  const prompt = buildGeneralQAPrompt(question, profile, holdings);
+  const evidence = await Promise.all(holdings.slice(0, 8).map(async holding => {
+    try { const q = await getLatestMarketPrice(holding.symbol); return { symbol: q.symbol, price: q.price, date: q.marketDate, source: q.source, quantity: holding.quantity, marketValue: Number((holding.quantity * q.price).toFixed(2)) }; }
+    catch { return { symbol: holding.symbol, status: 'Price unavailable; do not invent a value' }; }
+  }));
+  const prompt = buildGeneralQAPrompt(question, profile, holdings) + '\nValidated evidence: ' + JSON.stringify(evidence) + '\nCite the symbol, observed date and source for factual market claims. Distinguish supplied facts from interpretation. Do not invent news, prices or certainty. Explain downside and a reasonable alternative.';
   
   // Use the full base64 to ensure uniqueness, or a proper crypto hash. Since max length is 500 chars, 
   // base64 is at most ~670 chars which is fine for a Redis key.
   const questionHash = Buffer.from(question).toString('base64');
   
-  return processInsight(userId, 'GENERAL_QA', prompt, `qa:${questionHash}`);
+  const evidenceKey=createHash('sha256').update(JSON.stringify(evidence)).digest('hex').slice(0,16);
+  return { insight: await processInsight(userId, 'GENERAL_QA', prompt, `qa:${questionHash}:${evidenceKey}`), evidence };
 }
 
 // ─── History ────────────────────────────────────────────────────────────────
@@ -189,17 +202,36 @@ export async function getRecommendations(userId: string) {
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
   const walletBalance = wallet ? Number(wallet.balance) : 0;
 
-  const prompt = buildRecommendationPrompt(profile, holdings, walletBalance, NIFTY50_LIST);
-
-  const response = await processInsight(userId, 'STOCK_RECOMMENDATION', prompt, `recs:bal${Math.floor(walletBalance)}`);
-  
-  try {
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
-    const jsonStr = jsonMatch ? jsonMatch[0] : response;
-    return JSON.parse(jsonStr);
-  } catch (e) {
-    logger.error('Failed to parse Claude recommendation JSON', { response });
-    throw new AppError('AI returned an invalid format. Please try again.', 500);
-  }
+  const risk = profile?.riskAppetite || 'MEDIUM';
+  const budget = Math.floor(walletBalance * (risk === 'HIGH' ? 0.5 : risk === 'LOW' ? 0.18 : 0.32));
+  if (budget <= 0) return [];
+  const held = new Set(holdings.map(h => h.symbol));
+  const observed = await Promise.all(NIFTY50_LIST.filter(stock => !held.has(stock.symbol)).map(async stock => {
+    try { return await getLatestMarketPrice(stock.symbol); } catch { return null; }
+  }));
+  const quotes = observed.filter((quote): quote is NonNullable<typeof quote> => quote !== null);
+  const bySymbol = new Map(quotes.map(q => [q.symbol, q]));
+  if (budget <= 0) return [];
+  if (!quotes.length) throw new AppError('Observed stock prices are unavailable. Please retry; recommendations will not use invented prices.', 503);
+  if (!quotes.some(q => q.price <= budget)) return [];
+  const prompt = buildRecommendationPrompt(profile, holdings, budget, quotes) + '\nExplain the downside and alternatives in each rationale. Confidence is qualitative, not a probability or performance guarantee.';
+  const contextKey = createHash('sha256').update(JSON.stringify({profile,holdings,budget,quotes})).digest('hex').slice(0,24);
+  const normalize = (text: string) => {
+    let remaining = budget;
+    const seen = new Set<string>();
+    return parseRecommendations(text).slice(0,5).flatMap(rec => {
+      const symbol = normalizeSymbol(rec.symbol), quote = bySymbol.get(symbol);
+      if (!quote || held.has(symbol) || seen.has(symbol)) return [];
+      seen.add(symbol);
+      const qty = Math.min(rec.qty, Math.floor(remaining / quote.price));
+      if (qty < 1) return [];
+      const totalCost = Number((qty * quote.price).toFixed(2)); remaining -= totalCost;
+      return [{...rec,symbol,sector:getSectorForSymbol(symbol),qty,price:quote.price,totalCost,marketDate:quote.marketDate,source:quote.source,riskImpact:`Uses ${(totalCost / Math.max(walletBalance,1) * 100).toFixed(1)}% of available virtual cash.`,assumptions:`${risk} risk budget: ₹${budget}; latest observed regular-market price. Execution is repriced separately. No guaranteed returns.`}];
+    });
+  };
+  const response = await processInsight(userId, 'STOCK_RECOMMENDATION', prompt, `recs:v2:${contextKey}`, {
+    requireProvider: true, outputSchema: recommendationOutputSchema,
+    validate: text => JSON.stringify(normalize(text)),
+  });
+  return normalize(response);
 }
-

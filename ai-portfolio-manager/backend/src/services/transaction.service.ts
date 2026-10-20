@@ -68,16 +68,9 @@ export async function withdraw(userId: string, input: WalletActionInput) {
   const result = await prisma.$transaction(async (tx) => {
     const wallet = await getOrCreateWallet(tx, userId);
 
-    if (Number(wallet.balance) < amount) {
-      throw new AppError('Insufficient wallet balance for withdrawal', 400);
-    }
-
-    const updatedWallet = await tx.wallet.update({
-      where: { userId },
-      data: {
-        balance: { decrement: new Prisma.Decimal(amount) },
-      },
-    });
+    const debit = await tx.wallet.updateMany({ where: { userId, balance: { gte: new Prisma.Decimal(amount) } }, data: { balance: { decrement: new Prisma.Decimal(amount) } } });
+    if (debit.count !== 1) throw new AppError('Insufficient wallet balance for withdrawal', 400);
+    const updatedWallet = await tx.wallet.findUniqueOrThrow({ where: { userId } });
 
     const transaction = await tx.transaction.create({
       data: {
@@ -109,7 +102,7 @@ export async function getBalance(userId: string) {
   const cached = await redis.get(cacheKey);
 
   if (cached) {
-    return { balance: parseFloat(cached) };
+    return { balance: parseFloat(cached), availableBalance: parseFloat(cached), reservedBalance: 0, currency: 'INR', simulated: true };
   }
 
   const wallet = await prisma.$transaction(async (tx) => {
@@ -118,7 +111,7 @@ export async function getBalance(userId: string) {
 
   const balance = Number(wallet.balance);
   await redis.set(cacheKey, balance.toString(), 'EX', 3600);
-  return { balance };
+  return { balance, availableBalance: balance, reservedBalance: 0, currency: 'INR', simulated: true };
 }
 
 /**

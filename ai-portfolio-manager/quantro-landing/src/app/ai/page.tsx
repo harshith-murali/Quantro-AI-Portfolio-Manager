@@ -43,8 +43,8 @@ const CONVICTION: Record<string,{label:string;color:string}> = {
 // Rec type remains same
 type Rec = {
   symbol: string; sector: string; price: number;
-  qty: number; totalCost: number; conviction: number;
-  rationale: string; tag: string;
+  qty: number; totalCost: number; conviction: number | string;
+  rationale: string; tag: string; marketDate?: string; source?: string; riskImpact?: string; assumptions?: string;
 };
 
 export default function AIAdvisorPage() {
@@ -58,6 +58,7 @@ export default function AIAdvisorPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [question,  setQuestion]  = useState("");
   const [askResult, setAskResult] = useState("");
+  const [evidence, setEvidence] = useState<any[]>([]);
   const [asking,    setAsking]    = useState(false);
   const [activeRec, setActiveRec] = useState<Rec|null>(null);
   const [buyMsg,    setBuyMsg]    = useState("");
@@ -71,6 +72,8 @@ export default function AIAdvisorPage() {
   const riskAppetite = (user as any)?.riskAppetite ?? "MEDIUM";
   const [recsLoading, setRecsLoading] = useState(false);
   const [recsError, setRecsError] = useState("");
+  const [insightHistory, setInsightHistory] = useState<any[]>([]);
+  useEffect(()=>{if(accessToken) api.insights.history(accessToken).then((d:any)=>setInsightHistory(d.logs??[])).catch(()=>{});},[accessToken, recsLoading, aiLoading, asking]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -121,6 +124,7 @@ export default function AIAdvisorPage() {
     setAsking(true); setAskResult("");
     try {
       const d = await api.insights.ask(question, accessToken);
+      setEvidence((d as any).evidence ?? []);
       setAskResult((d as any).insight ?? (d as any).response ?? "");
     } catch { setAskResult("Unable to reach AI advisor right now."); }
     finally { setAsking(false); }
@@ -235,14 +239,14 @@ export default function AIAdvisorPage() {
         ) : recsError ? (
           <div className="py-16 text-center">
             <AlertTriangle size={48} className="mx-auto mb-3 text-red-400/50" />
-            <p className="text-white/70 text-sm mb-1">AI Advisor Offline</p>
+            <p className="text-white/70 text-sm mb-1">Recommendations unavailable</p>
             <p className="text-white/40 text-xs">{recsError}</p>
           </div>
         ) : recs.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-4xl mb-3 text-white/10">◎</p>
-            <p className="text-white/30 text-sm mb-1">Insufficient balance for recommendations</p>
-            <p className="text-white/20 text-xs">Deposit funds to your wallet to get AI-powered stock picks</p>
+            <p className="text-white/30 text-sm mb-1">No recommendations available</p>
+            <p className="text-white/20 text-xs">No new stock picks match your current wallet and holdings.</p>
           </div>
         ) : (
           <div className="space-y-0">
@@ -419,7 +423,7 @@ export default function AIAdvisorPage() {
               <p className="text-gold text-[10px] uppercase tracking-wider mb-2 flex items-center gap-2">
                 <BrainCircuit size={14} /> AI Response
               </p>
-              <MarkdownView content={askResult} />
+              <MarkdownView content={askResult} /><div className="grid sm:grid-cols-2 gap-3 mt-4">{evidence.map((e:any)=><div key={e.symbol} className="border border-white/10 rounded-xl p-3 text-xs text-white/60"><p className="text-gold">Observed evidence: {e.symbol}</p><p>{e.status??`₹${e.price} × ${e.quantity} shares = ₹${e.marketValue}`}</p><p>{e.date} · {e.source}</p></div>)}</div>
               <div className="flex items-center gap-2 text-white/20 text-[10px] mt-4 border-t border-white/[0.05] pt-3">
                 <AlertTriangle size={10} />
                 <span>AI-generated response. Verify all market data independently.</span>
@@ -429,6 +433,7 @@ export default function AIAdvisorPage() {
         </AnimatePresence>
       </motion.div>
 
+      <details className="glass-card mb-6"><summary className="text-gold cursor-pointer">Your recommendation and research history</summary>{insightHistory.length?insightHistory.map((item:any)=><details key={item.id} className="border-t border-white/10 py-3 mt-3"><summary className="text-white/60 text-sm cursor-pointer">{item.insightType.replaceAll('_',' ')} · {new Date(item.createdAt).toLocaleString()}</summary><div className="mt-3"><MarkdownView content={item.response}/></div></details>):<p className="text-white/50 mt-4">Generated insights will be saved here.</p>}</details>
       {/* Buy Modal */}
       <AnimatePresence>
         {activeRec && (
@@ -451,7 +456,7 @@ export default function AIAdvisorPage() {
               </div>
 
               <div className="p-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15 mb-5">
-                <p className="text-emerald-400/70 text-xs leading-relaxed">{activeRec.rationale}</p>
+                <p className="text-emerald-400/70 text-xs leading-relaxed">{activeRec.rationale}</p><p className="text-white/50 text-xs mt-2">{activeRec.riskImpact}</p><p className="text-white/40 text-xs mt-2">{activeRec.assumptions}</p><p className="text-white/40 text-xs mt-2">Source: {activeRec.source} · Market date: {activeRec.marketDate}</p><p className="text-white/60 text-xs mt-2">Alternative: keep virtual cash or compare a diversified allocation. Conviction is qualitative, not a calibrated probability. Review quantity and cost before accepting.</p>
               </div>
 
               <div className="mb-5">
@@ -472,7 +477,7 @@ export default function AIAdvisorPage() {
               <button onClick={handleBuy} disabled={buying||!buyQty}
                 className="w-full py-4 rounded-full bg-emerald-500 text-black font-bold text-sm uppercase tracking-[0.15em] hover:bg-emerald-400 hover:-translate-y-0.5 transition-all disabled:opacity-40 flex items-center justify-center gap-2">
                 {buying ? <RefreshCcw size={18} className="animate-spin" /> : <Zap size={18} />}
-                <span>{buying ? "Placing order…" : `Buy ${buyQty||"?"} × ${activeRec.symbol}`}</span>
+                <span>{buying ? "Placing order…" : `Confirm virtual buy: ${buyQty||"?"} × ${activeRec.symbol}`}</span>
               </button>
             </motion.div>
           </motion.div>

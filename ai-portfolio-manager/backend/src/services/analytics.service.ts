@@ -8,16 +8,20 @@ import { getPortfolioValuation } from '@/services/portfolioValuation.service';
  * 1. Top-level Portfolio KPIs
  */
 export async function getSummary(userId: string) {
-  const [valuation, profile] = await Promise.all([
+  const [valuation, profile, purchases] = await Promise.all([
     getPortfolioValuation(userId),
     prisma.financialProfile.findUnique({ where: { userId } }),
+    prisma.trade.aggregate({ where: { userId, type: 'BUY' }, _sum: { total: true } }),
   ]);
 
   return {
     totalInvested: valuation.totalInvested,
     currentValue: valuation.currentValue,
     totalPnL: valuation.totalPnl,
-    totalPnLPercent: valuation.unrealizedPnlPercent,
+    totalPnLPercent: Number(purchases._sum.total) > 0 ? Number((valuation.totalPnl / Number(purchases._sum.total) * 100).toFixed(2)) : 0,
+    unrealizedPnl: valuation.unrealizedPnl,
+    realizedPnl: valuation.realizedPnl,
+    pnlPercentBasis: 'Cumulative buy cost; not cash-flow-adjusted performance',
     dayChange: valuation.dayChange,
     dayChangePercent: valuation.dayChangePercent,
     walletBalance: valuation.walletBalance,
@@ -27,6 +31,7 @@ export async function getSummary(userId: string) {
     priceDataCoveragePercent: valuation.priceDataCoveragePercent,
     lastMarketDataUpdate: valuation.lastMarketDataUpdate,
     updateStatus: valuation.updateStatus,
+    dataSource: valuation.dataSource,
   };
 }
 

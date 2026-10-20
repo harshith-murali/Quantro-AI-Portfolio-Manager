@@ -1,6 +1,6 @@
 import { FinancialProfile, Holding, Trade } from '@prisma/client';
 
-const SYSTEM_PROMPT = `You are a SEBI-compliant AI investment advisor. You provide data-driven, unbiased stock insights. Always add a disclaimer that this is not financial advice. Keep your responses concise, beginner-friendly, and actionable. Never hallucinate stock prices — only use data passed in context.`;
+const SYSTEM_PROMPT = `You are an educational portfolio research assistant. You provide data-driven, unbiased stock insights. For prose answers, add a brief educational disclaimer. For structured JSON, the API supplies the disclaimer. Keep your responses concise, beginner-friendly, and actionable. Never hallucinate stock prices — only use data passed in context.`;
 
 export function buildPortfolioSummaryPrompt(
   profile: FinancialProfile | null,
@@ -49,10 +49,12 @@ User Profile:
 Holding Status:
 ${holdingContext}
 
-Signal Data for ${symbol} (Mocked):
+Signal Data for ${symbol} (observed):
 - RSI (14): ${signals.rsi}
 - MACD: ${signals.macd}
 - SMA (50): ${signals.sma50}
+- Observation date: ${signals.marketDate}
+- Source: ${signals.source}
 `;
 
   return `${SYSTEM_PROMPT}\n\nBased on the following user context and technical signals, provide a brief, actionable insight for the stock ${symbol}.\n\nContext:\n${context}`;
@@ -111,8 +113,8 @@ Market Options (NIFTY 50 Sample):
 ${niftyList.map(s => `- ${s.symbol}: ₹${s.price}`).join('\n')}
 `;
 
-  return `${SYSTEM_PROMPT}\n\nBased on the following user context and available market options, recommend exactly 3 to 5 stocks for the user to buy. Output ONLY valid JSON in the following format, with no markdown formatting or extra text:
-[
+  return `${SYSTEM_PROMPT}\n\nBased on the following user context and available market options, recommend up to 5 stocks not already held, using only the supplied symbols and prices. Keep the combined cost within the wallet balance. Return {"recommendations": []} if no stock is affordable. Output ONLY valid JSON in the following format, with no markdown formatting or extra text. The API adds the disclaimer separately; do not include it in this JSON:
+{"recommendations": [
   {
     "symbol": "TCS",
     "sector": "IT",
@@ -122,7 +124,7 @@ ${niftyList.map(s => `- ${s.symbol}: ₹${s.price}`).join('\n')}
     "rationale": "Strong balance sheet and aligned with moderate risk.",
     "tag": "Value"
   }
-]
+]}
 
 Context:\n${context}`;
 }

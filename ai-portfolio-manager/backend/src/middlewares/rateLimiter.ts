@@ -38,3 +38,12 @@ export const generalRateLimiter = rateLimit({
   },
   keyGenerator: (req) => req.ip ?? 'unknown',
 });
+
+// Session rotation is normal navigation traffic, separate from credential attempts.
+export const sessionRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (_req, res) => { res.status(429).json(errorResponse('Too many session refresh requests. Please wait and retry.')); },
+});

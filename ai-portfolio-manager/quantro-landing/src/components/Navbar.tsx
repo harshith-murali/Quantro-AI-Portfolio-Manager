@@ -150,6 +150,7 @@ export function Navbar() {
                   {/* ── Search Dropdown ── */}
                   {searchFocused && (
                     <div className="absolute left-0 top-full mt-2 w-[340px] max-h-[420px] overflow-y-auto rounded-2xl border border-white/10 bg-[#0c0c0c]/95 backdrop-blur-xl shadow-2xl z-50 py-2">
+                      <p className="px-4 py-2 text-[10px] text-gold/70">Stock catalog · displayed changes are illustrative. Open a stock for observed data.</p>
                       {search.trim() ? (
                         /* ── Filtered results ── */
                         searchResults.length > 0 ? (
@@ -275,6 +276,7 @@ export function Navbar() {
                   onClick={() => setDropdownOpen(p => !p)}
                   className="flex items-center gap-2.5 group"
                   aria-label="Profile menu"
+                  aria-expanded={dropdownOpen}
                 >
                   {/* Avatar circle */}
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all duration-200 ${
@@ -290,7 +292,7 @@ export function Navbar() {
 
                 {/* Dropdown panel */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 top-full mt-3 w-52 bg-[#0c0c0c]/95 backdrop-blur-xl rounded-2xl py-2 shadow-2xl border border-white/10 animate-in fade-in slide-in-from-top-1 duration-150 z-50">
+                  <div className="absolute right-0 top-full mt-3 w-52 max-h-[70vh] overflow-y-auto bg-[#0c0c0c]/95 backdrop-blur-xl rounded-2xl py-2 shadow-2xl border border-white/10 animate-in fade-in slide-in-from-top-1 duration-150 z-50">
                     <div className="px-4 py-3 border-b border-white/[0.06]">
                       <p className="text-white text-sm font-semibold truncate">{user?.name ?? "Investor"}</p>
                       <p className="text-white/35 text-xs truncate mt-0.5">{user?.email ?? ""}</p>
@@ -300,6 +302,11 @@ export function Navbar() {
                         { href: "/dashboard", label: "Dashboard",     icon: <BarChart3 size={16} /> },
                         { href: "/profile",   label: "Your Profile",   icon: <UserIcon size={16} /> },
                         { href: "/wallet",    label: "Wallet",          icon: <Wallet size={16} /> },
+                        { href: "/ai", label: "AI Advisor", icon: <Bot size={16} /> },
+                        { href: "/signals", label: "Signals", icon: <TrendingUp size={16} /> },
+                        { href: "/watchlist", label: "Watchlist", icon: <BarChart3 size={16} /> },
+                        { href: "/portfolio", label: "Portfolio", icon: <BarChart3 size={16} /> },
+                        { href: "/backtest", label: "Backtest", icon: <BarChart3 size={16} /> },
                       ].map(({ href, label, icon }) => (
                         <Link
                           key={href}

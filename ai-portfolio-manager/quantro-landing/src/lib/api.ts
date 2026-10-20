@@ -8,7 +8,7 @@ const BASE_URL =
     ? "/api"
     : (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api");
 
-async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
+export async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -17,37 +17,17 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
 
   let res: Response;
   try {
-    res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: "include" });
+    res = await fetch(`${BASE_URL}${path}`, { signal: AbortSignal.timeout(60000), ...options, headers, credentials: "include" });
   } catch {
     throw new Error("Cannot reach the server. Please make sure the backend is running.");
   }
 
-  // Intercept 401 Unauthorized errors (e.g., token expired) and attempt a silent token refresh
-  if (res.status === 401 && path !== "/auth/refresh" && path !== "/auth/login") {
-    const state = useStore.getState();
+  if (res.status === 401 && token && !path.startsWith("/auth/")) {
     try {
-      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-      if (refreshRes.ok) {
-        const refreshJson = await refreshRes.json();
-        const newData = refreshJson.data ?? refreshJson;
-        if (newData.accessToken) {
-          state.setAccessToken(newData.accessToken);
-          const newHeaders: HeadersInit = {
-            ...headers,
-            Authorization: `Bearer ${newData.accessToken}`,
-          };
-          res = await fetch(`${BASE_URL}${path}`, { ...options, headers: newHeaders, credentials: "include" });
-        }
-      } else {
-        state.logout();
-      }
-    } catch {
-      state.logout();
-    }
+      const current = useStore.getState().accessToken;
+      const next = current && current !== token ? current : await refreshAccessToken();
+      res = await fetch(`${BASE_URL}${path}`, { signal: AbortSignal.timeout(60000), ...options, headers: { ...headers, Authorization: `Bearer ${next}` }, credentials: "include" });
+    } catch { useStore.getState().logout(); }
   }
 
   const json = await res.json().catch(() => ({ message: res.statusText }));
@@ -65,6 +45,17 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
   return (json.data ?? json) as T;
 }
 
+let refreshInFlight: Promise<string> | null = null;
+async function refreshAccessToken(): Promise<string> {
+  if (!refreshInFlight) refreshInFlight = (async () => {
+    const response = await fetch(`${BASE_URL}/auth/refresh`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error("Please sign in again.");
+    const result = await response.json(); const token = result.data.accessToken;
+    useStore.getState().setAccessToken(token); return token;
+  })().finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────
 // Backend: POST /auth/register → { user, accessToken }
 // Backend: POST /auth/login    → { user, accessToken }
@@ -73,6 +64,7 @@ async function fetchAPI<T>(path: string, options: RequestInit = {}, token?: stri
 // Backend: POST /auth/logout   → null
 export const api = {
   auth: {
+    demo: () => fetchAPI<{user:any;accessToken:string}>("/auth/demo", {method:"POST",body:"{}"}),
     register: (body: { name: string; email: string; password: string }) =>
       fetchAPI<{ user: any; accessToken: string }>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
 
@@ -82,8 +74,7 @@ export const api = {
     me: (token: string) =>
       fetchAPI<{ user: any }>("/auth/me", {}, token),
 
-    refresh: () =>
-      fetchAPI<{ accessToken: string }>("/auth/refresh", { method: "POST" }),
+    refresh: async () => ({ accessToken: await refreshAccessToken() }),
 
     logout: (token: string) =>
       fetchAPI<void>("/auth/logout", { method: "POST" }, token),
@@ -236,7 +227,7 @@ export const api = {
   // ─── Signals ──────────────────────────────────────────────────────
   signals: {
     list: async (token: string): Promise<any[]> =>
-      fetchAPI<any>("/signals", {}, token).then((d: any) => d.signals ?? []),
+      fetchAPI<any>("/signals?limit=20", {}, token).then((d: any) => d.signals ?? []),
     get:  async (symbol: string, token: string): Promise<any> =>
       fetchAPI<any>(`/signals/${symbol}`, {}, token).then((d: any) => d.signal ?? null),
 
@@ -292,6 +283,9 @@ export const api = {
         shortWindow: body.shortWindow?.toString() ?? "20",
         longWindow: body.longWindow?.toString() ?? "50",
         initialCapital: body.initialCapital?.toString() ?? "100000",
+        positionSize: String(body.positionSize ?? 10),
+        transactionCostPct: String(body.transactionCostPct ?? 0.1),
+        slippagePct: String(body.slippagePct ?? 0.05),
         startDate: body.dateFrom,
         endDate: body.dateTo,
       });

@@ -18,14 +18,14 @@ const body = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'Quantro — Intelligent AI Portfolio Management',
   description: 'Defy market gravity with Quantro. A premium AI-powered stock portfolio platform for smart investors.',
-  metadataBase: new URL('https://quantro.app'), // Placeholder URL
+  metadataBase: new URL('https://quantro-landing.vercel.app'), // Placeholder URL
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: 'Quantro — Intelligent AI Portfolio Management',
-    description: 'Monitor, simulate, and optimize your portfolio with real-time AI signals and backtesting.',
-    url: 'https://quantro.app',
+    description: 'Explore paper trading, observed market data, explainable AI and historical strategy simulations.',
+    url: 'https://quantro-landing.vercel.app',
     siteName: 'Quantro',
     images: [
       {

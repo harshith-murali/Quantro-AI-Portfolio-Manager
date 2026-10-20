@@ -2,12 +2,28 @@ import { Router } from 'express';
 import * as AuthController from '@/controllers/auth.controller';
 import { verifyAccessTokenMiddleware } from '@/middlewares/verifyAccessToken';
 import { asyncHandler } from '@/middlewares/asyncHandler';
-import { authRateLimiter } from '@/middlewares/rateLimiter';
+import { authRateLimiter, sessionRateLimiter } from '@/middlewares/rateLimiter';
+import { createDemo } from '@/controllers/demo.controller';
+import { z } from 'zod';
+import { requestAccountAction, completeAccountAction } from '@/services/accountAction.service';
+import { successResponse } from '@/utils/ApiResponse';
 
 const router = Router();
 
-// All auth routes share the strict rate limiter
-router.use(authRateLimiter);
+// Credential and account-creation attempts retain the strict limiter.
+router.use(['/demo', '/register', '/login', '/account-action', '/complete-action'], authRateLimiter);
+router.use('/refresh', sessionRateLimiter);
+router.post('/demo', asyncHandler(createDemo));
+router.post('/account-action', asyncHandler(async(req,res)=>{
+  const value=z.object({email:z.string().email().max(254),kind:z.enum(['reset','verify'])}).parse(req.body);
+  await requestAccountAction(value.email,value.kind);
+  res.json(successResponse('If this account exists, a single-use link has been sent.',null));
+}));
+router.post('/complete-action', asyncHandler(async(req,res)=>{
+  const value=z.object({token:z.string().regex(/^[a-f0-9]{64}$/),kind:z.enum(['reset','verify']),password:z.string().max(128).optional()}).parse(req.body);
+  await completeAccountAction(value.token,value.kind,value.password);
+  res.json(successResponse(value.kind==='reset'?'Password reset. Please sign in again.':'Email verified.',null));
+}));
 
 /**
  * @route   POST /api/auth/register

@@ -15,6 +15,7 @@ const mockTickerData = [
 export function TickerBar() {
   return (
     <div className="fixed top-0 left-0 w-full overflow-hidden border-b border-white/5 bg-[#0a0a0a] py-1.5 z-[60]">
+      <span className="absolute left-0 top-0 bottom-0 z-10 bg-[#0a0a0a] px-3 flex items-center text-[10px] text-gold border-r border-white/10">ILLUSTRATIVE · NOT LIVE</span>
       <div className="flex w-max animate-ticker">
         {/* Double the data for seamless looping */}
         {[...mockTickerData, ...mockTickerData, ...mockTickerData].map((item, index) => (

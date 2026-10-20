@@ -6,6 +6,7 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = loginSchema.extend({
+  password: z.string().min(8).max(128).regex(/[A-Z]/,"Include an uppercase letter").regex(/[a-z]/,"Include a lowercase letter").regex(/[0-9]/,"Include a number").regex(/[^A-Za-z0-9]/,"Include a special character"),
   confirmPassword: z.string(),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "Passwords do not match",
@@ -37,8 +38,10 @@ export const backtestSchema = z.object({
   dateTo: z.string().min(1, "Select end date"),
   initialCapital: z.number().min(10000, "Minimum capital is ₹10,000"),
   positionSize: z.number().min(1).max(100),
-  shortWindow: z.number().min(1),
-  longWindow: z.number().min(1),
+  shortWindow: z.number().int().min(2).max(200),
+  longWindow: z.number().int().min(3).max(250),
+  transactionCostPct: z.number().min(0).max(5),
+  slippagePct: z.number().min(0).max(5),
 }).refine((d) => new Date(d.dateTo) > new Date(d.dateFrom), {
   message: "End date must be after start date",
   path: ["dateTo"],

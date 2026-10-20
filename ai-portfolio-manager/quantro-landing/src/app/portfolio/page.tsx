@@ -16,6 +16,7 @@ import {
 import { useStore } from "@/lib/store";
 import * as XLSX from "xlsx";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import type { PortfolioSnapshot } from "@/lib/types";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from "recharts";
 
@@ -45,7 +46,7 @@ export default function PortfolioPage() {
   const [tradeErr, setTradeErr] = useState("");
 
   useEffect(() => {
-    if (!accessToken) { router.push("/auth/login"); return; }
+    if (!accessToken) return;
     Promise.allSettled([
       api.portfolio.summary(accessToken).then((d) => setPortfolio(d.summary ?? d)).catch(() => {}),
       api.portfolio.holdings(accessToken).then((d: any) => setHoldings(d.holdings ?? d ?? [])).catch(() => {}),
@@ -174,12 +175,12 @@ export default function PortfolioPage() {
               {/* Suggestion cards */}
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                 <div className="p-3 bg-gold/5 border border-gold/20 rounded-xl">
-                  <p className="text-gold text-xs font-medium mb-1">Top buy for your profile</p>
-                  <p className="text-white/60 text-xs">RELIANCE — RSI oversold, strong support</p>
+                  <p className="text-gold text-xs font-medium mb-1">Research before you trade</p>
+                  <p className="text-white/60 text-xs">Compare observed prices, technical signals and your virtual budget.</p>
                 </div>
                 <div className="p-3 bg-white/5 border border-white/10 rounded-xl">
                   <p className="text-white/60 text-xs font-medium mb-1">Diversification tip</p>
-                  <p className="text-white/40 text-xs">Add a Pharma stock for sector balance</p>
+                  <p className="text-white/40 text-xs">Review stock and sector concentration across your holdings.</p>
                 </div>
               </div>
             </div>
@@ -284,7 +285,7 @@ export default function PortfolioPage() {
                   const price = Number(t.price ?? 0);
                   const qty = Number(t.quantity ?? 0);
                   const value = qty * price;
-                  const fee = Math.max(value * 0.001, 20);
+                  const fee = 0;
                   const tradeType = t.action ?? t.type;
                   const date = new Date(t.tradeDate ?? t.createdAt).toLocaleDateString("en-IN");
                   return {
@@ -337,7 +338,7 @@ export default function PortfolioPage() {
                   <td className="py-2 px-2 text-white/60 tabular-nums">{qty}</td>
                   <td className="py-2 px-2 text-white/60 tabular-nums">₹{price.toFixed(0)}</td>
                   <td className="py-2 px-2 text-white/60 tabular-nums">₹{(qty * price).toLocaleString("en-IN")}</td>
-                  <td className="py-2 px-2 text-white/30 tabular-nums">₹{Math.max(qty * price * 0.001, 20).toFixed(0)}</td>
+                  <td className="py-2 px-2 text-white/30 tabular-nums">₹{Number(0).toFixed(0)}</td>
                 </tr>
                 );
               })}

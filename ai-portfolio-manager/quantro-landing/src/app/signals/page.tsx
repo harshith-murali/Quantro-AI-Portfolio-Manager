@@ -15,6 +15,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import type { StockSignal } from "@/lib/types";
 
 // NSE trading hours: 9:15 – 15:30 IST (UTC+5:30)
@@ -23,7 +24,7 @@ function isWithinTradingHours(): boolean {
   const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
   const h = ist.getHours(), m = ist.getMinutes();
   const mins = h * 60 + m;
-  return mins >= 9 * 60 + 15 && mins < 15 * 60 + 30;
+  return true; // Paper trading is available outside exchange hours in the demo.
 }
 
 const SIGNAL_STYLE: Record<string, string> = {
@@ -62,7 +63,8 @@ export default function SignalsPage() {
 function SignalsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { accessToken, watchlist: watchlistArr, toggleWatchlist } = useStore();
+  const { watchlist: watchlistArr } = useStore();
+  const accessToken=useAuth();
   const [signals, setSignals] = useState<StockSignal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -91,6 +93,12 @@ function SignalsPageContent() {
   }, [searchParams]);
 
   const [updatedAt] = useState(() => new Date().toLocaleTimeString("en-IN"));
+  const toggleWatchlist = async (symbol: string) => {
+    if(!accessToken)return;
+    try { const existing=useStore.getState().watchlist.includes(symbol);if(existing)await api.watchlist.remove(symbol,accessToken);else await api.watchlist.add(symbol,accessToken);useStore.getState().toggleWatchlist(symbol); }
+    catch(e:any){setError(e.message);}
+  };
+  useEffect(()=>{if(accessToken)api.watchlist.list(accessToken).then(d=>useStore.setState({watchlist:d.items.map((item:any)=>item.symbol)})).catch(()=>{});},[accessToken]);
   const watchlist = useMemo(() => new Set(watchlistArr), [watchlistArr]);
 
   // Trade modal state
@@ -99,35 +107,14 @@ function SignalsPageContent() {
   const [tradeLoading, setTradeLoading] = useState(false);
   const [tradeResult, setTradeResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
-  // Mock fallback data when backend is unavailable
-  const MOCK_SIGNALS: StockSignal[] = [
-    { symbol: "RELIANCE", signal: "BUY",  suitabilityScore: 92, suggestedAllocation: 50000, rsi: 28.5, macd: -1.2, currentPrice: 2845.50, changePercent: -1.4, rationale: "RSI oversold at major support. High conviction reversal setup." },
-    { symbol: "ZOMATO",   signal: "BUY",  suitabilityScore: 85, suggestedAllocation: 25000, rsi: 35.2, macd: 0.8,  currentPrice: 154.20,  changePercent: 3.2,  rationale: "Breaking out of consolidation with volume expansion." },
-    { symbol: "TCS",      signal: "HOLD", suitabilityScore: 78, suggestedAllocation: 0,     rsi: 55.4, macd: 2.1,  currentPrice: 3920.00, changePercent: 0.5,  rationale: "Range-bound. Await clear breakout above 4000." },
-    { symbol: "HDFCBANK", signal: "SELL", suitabilityScore: 45, suggestedAllocation: 0,     rsi: 74.5, macd: 5.4,  currentPrice: 1680.75, changePercent: 1.8,  rationale: "Overbought on RSI, momentum slowing near resistance." },
-    { symbol: "INFY",     signal: "BUY",  suitabilityScore: 88, suggestedAllocation: 40000, rsi: 32.1, macd: -0.5, currentPrice: 1425.30, changePercent: -2.1, rationale: "Mean reversion at 200 DMA with RSI oversold signal." },
-    { symbol: "WIPRO",    signal: "BUY",  suitabilityScore: 81, suggestedAllocation: 20000, rsi: 31.0, macd: -0.3, currentPrice: 468.50,  changePercent: -1.8, rationale: "Accumulation zone with improving MACD divergence." },
-    { symbol: "SUNPHARMA",signal: "HOLD", suitabilityScore: 72, suggestedAllocation: 0,     rsi: 52.0, macd: 1.2,  currentPrice: 1598.00, changePercent: 0.3,  rationale: "Neutral technicals — watch for sector rotation cue." },
-    { symbol: "SBIN",     signal: "BUY",  suitabilityScore: 79, suggestedAllocation: 30000, rsi: 36.5, macd: 0.5,  currentPrice: 812.40,  changePercent: 0.9,  rationale: "Public sector banking showing relative strength." },
-  ];
-
+  const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {
-    if (!accessToken) { router.push("/auth/login"); return; }
-    api.signals
-      .list(accessToken)
-      .then(data => setSignals(data?.length ? data : MOCK_SIGNALS))
-      .catch((e) => {
-        // Token expired or backend down — use mock data, don't crash
-        if (e.message?.toLowerCase().includes("expired") || e.message?.toLowerCase().includes("unauthorized") || e.message?.toLowerCase().includes("401")) {
-          // Silently use mock data; optionally logout after a delay
-          setSignals(MOCK_SIGNALS);
-        } else {
-          setSignals(MOCK_SIGNALS); // always fallback gracefully
-          setError(""); // don't show the error
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [accessToken]);
+    if (!accessToken) return;
+    let active=true; setLoading(true); setError("");
+    api.signals.list(accessToken).then(data => {if(active){setSignals(data);if(!data.length)setError("No verified signals are available. Try refreshing shortly.");}})
+      .catch(e=>{if(active){setSignals([]);setError(e.message||"Signals could not be loaded.");}}).finally(()=>{if(active)setLoading(false);});
+    return()=>{active=false;};
+  }, [accessToken, refreshKey]);
 
   const displayed = useMemo(() => {
     let list = [...signals];
@@ -230,7 +217,7 @@ function SignalsPageContent() {
         </div>
       </div>
 
-      {error && <p className="text-red-400 mb-6 text-sm">{error}</p>}
+      <div className="flex flex-wrap gap-3 items-center mb-5 text-sm"><p className="text-white/60">Observed market data · Rule-based technical scores, not calibrated probabilities.</p><button className="text-gold border border-gold/30 rounded-lg px-3 py-2" onClick={()=>setRefreshKey(k=>k+1)}>Refresh signals</button></div>{error && <p role="alert" className="text-red-400 mb-6 text-sm">{error}</p>}
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -257,6 +244,7 @@ function SignalsPageContent() {
                 </div>
               </div>
 
+              <p className="text-white/50 text-[10px] mb-3">{s.dataSource} · Observed {s.marketDate}</p>
               {/* Rationale */}
               {s.rationale && (
                 <p className="text-white/40 text-xs mb-3 leading-relaxed border-l-2 border-gold/30 pl-3">{s.rationale}</p>
@@ -368,7 +356,7 @@ function SignalsPageContent() {
                 {tradeQty && Number(tradeQty) > 0 && (() => {
                   const subtotal = Number(tradeQty) * tradeModal.price;
                   const percentFee = subtotal * 0.001;
-                  const fee = Math.max(percentFee, 20);
+                  const fee = 0; // Paper trades have no fee; backtests model costs separately.
                   const total = subtotal + fee;
                   return (
                     <div className="border-t border-white/5 pt-4 space-y-2">
@@ -381,7 +369,7 @@ function SignalsPageContent() {
                         <span className="text-white/60 tabular-nums">
                           ₹{fee.toFixed(2)}
                           <span className="text-white/20 ml-1 text-[10px]">
-                            ({percentFee >= 20 ? "0.1%" : "min ₹20"})
+                            (paper simulation)
                           </span>
                         </span>
                       </div>

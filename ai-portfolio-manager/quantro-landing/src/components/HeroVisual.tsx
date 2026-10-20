@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { motion, useScroll, useTransform } from 'framer-motion';
 
@@ -125,9 +126,9 @@ export function HeroVisual() {
                   <div className="text-[10px] uppercase tracking-[0.25em] text-faint">AI directive</div>
                   <div className="mt-1 text-sm text-text">Increase quality tech by 4%</div>
                 </div>
-                <button className="rounded-full border border-[rgba(207,171,103,0.25)] px-4 py-2 text-[11px] uppercase tracking-[0.24em] text-gold transition hover:bg-[rgba(207,171,103,0.08)]">
-                  Approve
-                </button>
+                <Link href="/ai" className="rounded-full border border-[rgba(207,171,103,0.25)] px-4 py-2 text-[11px] uppercase tracking-[0.24em] text-gold transition hover:bg-[rgba(207,171,103,0.08)]">
+                  Review
+                </Link>
               </div>
             </div>
           </div>

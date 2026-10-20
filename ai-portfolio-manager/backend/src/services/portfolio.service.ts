@@ -10,7 +10,7 @@ import {
   invalidateWalletCache 
 } from '@/services/transaction.service';
 import { invalidateDashboardCache } from '@/services/analytics.service';
-import { getLatestMarketPrice } from '@/services/marketPrice.service';
+import { getLatestMarketPrice, MarketPrice } from '@/services/marketPrice.service';
 import { getPortfolioValuation, valueHoldingRows } from '@/services/portfolioValuation.service';
 
 function checkMarketHours() {
@@ -33,6 +33,14 @@ function checkMarketHours() {
   }
 }
 
+async function serializableTrade<T>(operation: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try { return await prisma.$transaction(operation, { isolationLevel: 'Serializable', timeout: 10000 }); }
+    catch (error: any) { if (error.code !== 'P2034') throw error; }
+  }
+  throw new AppError('Another order updated this portfolio. Please retry your order.', 409);
+}
+
 // ─── BUY ─────────────────────────────────────────────────────────
 /**
  * Places a virtual BUY order:
@@ -47,8 +55,9 @@ export async function executeBuy(userId: string, input: TradeInput) {
   const marketPrice = await getLatestMarketPrice(symbol);
   const price = marketPrice.price;
   const total = quantity * price;
+  const snapshotPrices = await prepareSnapshotPrices(userId, marketPrice);
 
-  const trade = await prisma.$transaction(async (tx) => {
+  const trade = await serializableTrade(async (tx) => {
     // 1. Record the trade
     const trade = await tx.trade.create({
       data: {
@@ -96,7 +105,7 @@ export async function executeBuy(userId: string, input: TradeInput) {
     }
 
     // 3. Snapshot portfolio (upsert today's entry)
-    await snapshotPortfolio(tx, userId);
+    await snapshotPortfolio(tx, userId, snapshotPrices);
 
     // 4. Process virtual transaction (Debit cash from wallet)
     await processTradeDebit(
@@ -145,8 +154,9 @@ export async function executeSell(userId: string, input: TradeInput) {
   const marketPrice = await getLatestMarketPrice(symbol);
   const price = marketPrice.price;
   const total = quantity * price;
+  const snapshotPrices = await prepareSnapshotPrices(userId, marketPrice);
 
-  const trade = await prisma.$transaction(async (tx) => {
+  const trade = await serializableTrade(async (tx) => {
     // 1. Validate holdings
     const holding = await tx.holding.findUnique({
       where: { userId_symbol: { userId, symbol } },
@@ -203,7 +213,7 @@ export async function executeSell(userId: string, input: TradeInput) {
     }
 
     // 5. Snapshot portfolio
-    await snapshotPortfolio(tx, userId);
+    await snapshotPortfolio(tx, userId, snapshotPrices);
 
     // 6. Process virtual transaction (Credit cash to wallet + realized P&L settlement)
     await processTradeCredit(
@@ -338,9 +348,25 @@ async function invalidatePortfolioCache(userId: string) {
  * Upserts today's portfolio snapshot.
  * Called automatically after every trade within the same transaction.
  */
+// Resolve external prices before opening a database transaction. Provider latency
+// must not consume the transaction timeout while wallet/holding rows are locked.
+async function prepareSnapshotPrices(userId: string, executionPrice: MarketPrice) {
+  const holdings = await prisma.holding.findMany({ where: { userId }, select: { symbol: true } });
+  const prices = new Map<string, MarketPrice>([[executionPrice.symbol, executionPrice]]);
+  await Promise.all(holdings.filter(holding => holding.symbol !== executionPrice.symbol).map(async holding => {
+    try {
+      prices.set(holding.symbol, await getLatestMarketPrice(holding.symbol));
+    } catch {
+      logger.warn('Snapshot price unavailable', { symbol: holding.symbol });
+    }
+  }));
+  return prices;
+}
+
 async function snapshotPortfolio(
   tx: Prisma.TransactionClient,
   userId: string,
+  prices: Map<string, MarketPrice>,
 ) {
   const holdings = await tx.holding.findMany({ where: { userId } });
 
@@ -349,7 +375,11 @@ async function snapshotPortfolio(
     0,
   );
 
-  const { valuedHoldings } = await valueHoldingRows(holdings);
+  const { valuedHoldings } = await valueHoldingRows(holdings, async symbol => {
+    const price = prices.get(symbol);
+    if (!price) throw new Error(`Snapshot price unavailable for ${symbol}`);
+    return price;
+  });
   const currentValue = valuedHoldings.reduce((sum, h) => sum + h.currentValue, 0);
 
   const pnl = currentValue - totalInvested;

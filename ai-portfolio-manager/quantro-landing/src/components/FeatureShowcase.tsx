@@ -29,7 +29,7 @@ const SHOWCASE_FEATURES = [
     tag: 'COMPARE',
     title: 'Market compare mode',
     description:
-      'Overlay any two stocks against a benchmark index. Compare returns, volatility, Sharpe ratio, and beta side by side across configurable time windows from 1 month to 3 years.',
+      'Compare SMA parameter sets against a matching buy-and-hold baseline. Inspect return, drawdown, volatility and Sharpe under the same costs, period and starting capital.',
     image: '/features/compare.png',
     link: '/backtest',
     linkText: 'Run Backtest',

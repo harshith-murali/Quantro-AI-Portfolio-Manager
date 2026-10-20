@@ -12,6 +12,9 @@ import backtestRouter from '@/routes/backtest.routes';
 import marketRouter from '@/routes/market.routes';
 import signalsRouter from '@/routes/signals.routes';
 import watchlistRouter from '@/routes/watchlist.routes';
+import { z } from 'zod';
+import prisma from '@/config/db';
+import { getPortfolioValuation } from '@/services/portfolioValuation.service';
 import { verifyAccessTokenMiddleware } from '@/middlewares/verifyAccessToken';
 import { verifyAdmin } from '@/middlewares/verifyAdmin';
 import { asyncHandler } from '@/middlewares/asyncHandler';
@@ -43,12 +46,7 @@ router.get(
   verifyAccessTokenMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
     res.status(200).json(
-      successResponse('Portfolio data retrieved', {
-        userId: req.user!.id,
-        message: 'Your AI-powered portfolio dashboard will live here.',
-        holdings: [],
-        recommendations: [],
-      }),
+      successResponse('Portfolio data retrieved', await getPortfolioValuation(req.user!.id)),
     );
   }),
 );
@@ -75,6 +73,12 @@ router.use('/backtest', backtestRouter);
 router.use('/market', marketRouter);
 router.use('/signals', signalsRouter);
 router.use('/watchlist', watchlistRouter);
+router.post('/waitlist', asyncHandler(async (req, res) => {
+  const value = z.object({ email: z.string().email().max(254).transform(email => email.toLowerCase().trim()), consent: z.literal(true) }).parse(req.body);
+  const existing = await prisma.waitlistSignup.findUnique({ where: { email: value.email } });
+  if (!existing) await prisma.waitlistSignup.upsert({ where: { email: value.email }, create: value, update: {} });
+  res.json(successResponse(existing ? 'You are already on the waitlist.' : 'You have joined the waitlist.', { subscribed: true }));
+}));
 
 // ─── Portfolio & Trading routes ────────────────────────────────────
 router.use('/', portfolioRouter);

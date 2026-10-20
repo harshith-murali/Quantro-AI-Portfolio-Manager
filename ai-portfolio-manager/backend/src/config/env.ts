@@ -40,6 +40,9 @@ const envSchema = z.object({
     .refine((val) => !isNaN(val) && val > 0, {
       message: 'MARKET_DATA_MAX_STALENESS_DAYS must be a positive number',
     }),
+  MARKET_PRICE_PROVIDER: z.enum(['s3', 'yahoo']).default('s3'),
+  BACKTEST_DATA_PROVIDER: z.enum(['s3', 'yahoo']).default('yahoo'),
+  BACKTEST_S3_MANIFEST_KEY: z.string().optional(),
 });
 
 const result = envSchema.safeParse(process.env);

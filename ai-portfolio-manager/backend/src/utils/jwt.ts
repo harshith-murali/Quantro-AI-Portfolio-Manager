@@ -1,4 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { randomUUID } from 'node:crypto';
 import { env } from '@/config/env';
 import { JwtPayload, TokenPair } from '@/types/auth.types';
 import { AuthError } from '@/utils/AppError';
@@ -26,7 +27,9 @@ export function signRefreshToken(payload: TokenPayloadInput): string {
   return jwt.sign(
     { ...payload, type: 'refresh' },
     env.REFRESH_TOKEN_SECRET,
-    { expiresIn: env.REFRESH_TOKEN_EXPIRY } as SignOptions,
+    // JWT timestamps have second precision. A unique ID prevents identical
+    // refresh tokens during rapid login or rotation for the same user.
+    { expiresIn: env.REFRESH_TOKEN_EXPIRY, jwtid: randomUUID() } as SignOptions,
   );
 }
 

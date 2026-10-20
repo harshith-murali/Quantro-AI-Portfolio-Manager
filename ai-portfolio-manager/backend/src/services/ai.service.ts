@@ -4,6 +4,7 @@ import {
 } from '@aws-sdk/client-sagemaker-runtime';
 import Anthropic from '@anthropic-ai/sdk';
 import { logger } from '@/utils/logger';
+import { AppError } from '@/utils/AppError';
 
 // ─── AWS Hugging Face SageMaker Configuration ────────────────────────────────
 const AWS_REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'ap-southeast-2';
@@ -39,8 +40,8 @@ async function invokeSageMakerEndpoint(endpointName: string, prompt: string): Pr
   const payload = {
     inputs: prompt,
     parameters: {
-      max_new_tokens: 1024,
-      temperature: 0.6,
+      max_new_tokens: 2048,
+      temperature: 0.2,
       top_p: 0.9,
       return_full_text: false,
     },
@@ -91,8 +92,8 @@ async function invokeHuggingFaceHttp(endpointUrl: string, prompt: string): Promi
     body: JSON.stringify({
       inputs: prompt,
       parameters: {
-        max_new_tokens: 1024,
-        temperature: 0.6,
+        max_new_tokens: 2048,
+        temperature: 0.2,
         return_full_text: false,
       },
     }),
@@ -112,56 +113,136 @@ async function invokeHuggingFaceHttp(endpointUrl: string, prompt: string): Promi
   return typeof data === 'string' ? data : JSON.stringify(data);
 }
 
-/**
- * Generates an AI financial response prioritizing AWS Hugging Face SageMaker,
- * with fallbacks to Hugging Face Inference HTTP, Anthropic, or an intelligent heuristic summary.
- */
-export async function generateAIResponse(prompt: string): Promise<string> {
-  // 1. Primary Engine: AWS Hugging Face SageMaker real-time endpoint
-  if (SAGEMAKER_ENDPOINT_NAME) {
-    try {
-      logger.info(`Invoking AWS SageMaker Hugging Face endpoint: ${SAGEMAKER_ENDPOINT_NAME}`);
-      return await invokeSageMakerEndpoint(SAGEMAKER_ENDPOINT_NAME, prompt);
-    } catch (error: any) {
-      logger.error('AWS SageMaker Hugging Face invocation failed, checking fallbacks:', {
-        endpoint: SAGEMAKER_ENDPOINT_NAME,
-        error: error.message,
-      });
-    }
+/** Use HF's hosted chat router when only an API key is configured. */
+async function invokeHuggingFaceChat(prompt: string): Promise<string> {
+  const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${HF_API_KEY}` },
+    signal: AbortSignal.timeout(60_000),
+    body: JSON.stringify({
+      model: process.env.HF_MODEL || 'Qwen/Qwen3-32B',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 2048,
+      temperature: 0.2,
+    }),
+  });
+  if (response.status === 402) {
+    throw new AppError('Hugging Face has no inference credits remaining. Add credits to the Hugging Face account to enable AI recommendations.', 503);
   }
-
-  // 2. Secondary Engine: Hugging Face Inference Endpoint
-  if (HF_ENDPOINT_URL) {
-    try {
-      logger.info(`Invoking Hugging Face HTTP endpoint: ${HF_ENDPOINT_URL}`);
-      return await invokeHuggingFaceHttp(HF_ENDPOINT_URL, prompt);
-    } catch (error: any) {
-      logger.error('Hugging Face HTTP invocation failed, checking fallbacks:', {
-        error: error.message,
-      });
-    }
+  if (response.status === 401 || response.status === 403) {
+    throw new AppError('Hugging Face authentication failed. Check HF_API_KEY and its Inference Providers permission on the backend.', 503);
   }
+  if (!response.ok) throw new Error(`Hugging Face chat endpoint error: ${response.status}`);
+  const data = await response.json() as any;
+  const content = data.choices?.[0]?.message?.content;
+  if (typeof content !== 'string' || !content.trim()) throw new Error('Hugging Face returned no text');
+  if (data.choices[0].finish_reason === 'length') throw new Error('Hugging Face response was truncated');
+  return content.trim();
+}
 
-  // 3. Fallback: Anthropic Claude (if configured)
-  if (process.env.ANTHROPIC_API_KEY) {
-    try {
-      logger.info('Invoking Anthropic Claude fallback');
+export interface AIResponseOptions {
+  // Validate inside the provider loop so malformed output tries the next provider.
+  validate?: (response: string) => string;
+  requireProvider?: boolean;
+  outputSchema?: Record<string, unknown>;
+}
+
+/** Groq's free plan requires a key but does not require HF inference credits. */
+async function invokeGroq(prompt: string, options: AIResponseOptions): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY?.trim();
+  if (!apiKey) {
+    throw new AppError('Groq is not configured. Create a free API key at console.groq.com/keys and set GROQ_API_KEY on the backend.', 503);
+  }
+  // A provider-side strict decoder can reject a generation with json_validate_failed.
+  // Retry that specific error once in JSON-object mode; runtime validation still applies.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(60_000),
+      body: JSON.stringify({
+        model: process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
+        messages: [{ role: 'user', content: prompt }],
+        max_completion_tokens: 4096,
+        temperature: 0.2,
+        ...(options.outputSchema && attempt === 1 ? { response_format: { type: 'json_object' } } : options.outputSchema ? {
+          response_format: {
+            type: 'json_schema',
+            json_schema: { name: 'recommendations', strict: true, schema: options.outputSchema },
+          },
+        } : {}),
+      }),
+    });
+    if (response.status === 400 && options.outputSchema && attempt === 0) {
+      const error = await response.clone().json().catch(() => null) as any;
+      if (error?.error?.code === 'json_validate_failed') {
+        logger.warn('Groq strict generation rejected; retrying once with JSON-object mode');
+        continue;
+      }
+    }
+    if (response.status === 429) {
+      throw new AppError('Groq free-tier rate limit reached. Please wait and try again.', 429);
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new AppError('Groq authentication failed. Check GROQ_API_KEY and model access on the backend.', 503);
+    }
+    if (!response.ok) throw new Error(`Groq chat endpoint error: ${response.status}`);
+    const data = await response.json() as any;
+    const choice = data.choices?.[0];
+    if (choice?.finish_reason === 'length') throw new Error('Groq response was truncated');
+    const text = choice?.message?.content;
+    if (typeof text !== 'string' || !text.trim()) throw new Error('Groq returned no text');
+    return text.trim();
+  }
+  throw new Error('Groq could not produce a valid structured response');
+}
+
+export async function generateAIResponse(prompt: string, options: AIResponseOptions = {}): Promise<string> {
+  // Explicit selection prevents an exhausted free plan from silently using paid providers.
+  const selected = process.env.AI_PROVIDER || 'groq';
+  if (!['groq', 'huggingface', 'sagemaker', 'anthropic', 'auto'].includes(selected)) {
+    throw new AppError('Invalid AI_PROVIDER. Use groq, huggingface, sagemaker, anthropic, or auto.', 503);
+  }
+  const enabled = (name: string) => selected === name || selected === 'auto';
+  const providers: Array<{ name: string; invoke: () => Promise<string> }> = [];
+  if (enabled('groq')) providers.push({ name: 'Groq', invoke: () => invokeGroq(prompt, options) });
+  if (enabled('sagemaker') && SAGEMAKER_ENDPOINT_NAME) providers.push({ name: 'SageMaker', invoke: () => invokeSageMakerEndpoint(SAGEMAKER_ENDPOINT_NAME, prompt) });
+  if (enabled('huggingface') && HF_ENDPOINT_URL) providers.push({ name: 'Hugging Face endpoint', invoke: () => invokeHuggingFaceHttp(HF_ENDPOINT_URL, prompt) });
+  else if (enabled('huggingface') && HF_API_KEY) providers.push({ name: 'Hugging Face chat', invoke: () => invokeHuggingFaceChat(prompt) });
+  if (enabled('anthropic') && process.env.ANTHROPIC_API_KEY) providers.push({
+    name: 'Anthropic',
+    invoke: async () => {
       const response = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 2048,
         messages: [{ role: 'user', content: prompt }],
       });
+      if (response.stop_reason === 'max_tokens') throw new Error('Anthropic response was truncated');
+      const text = response.content.filter(block => block.type === 'text').map(block => block.text).join('\n');
+      if (!text.trim()) throw new Error('Anthropic returned no text');
+      return text;
+    },
+  });
 
-      if (response.content && response.content.length > 0 && response.content[0].type === 'text') {
-        return response.content[0].text;
-      }
+  let providerError: AppError | undefined;
+  for (const provider of providers) {
+    try {
+      const response = await provider.invoke();
+      return options.validate ? options.validate(response) : response;
     } catch (error: any) {
-      logger.error('Anthropic invocation failed:', { error: error.message });
+      if (error instanceof AppError) providerError = error;
+      logger.warn('AI provider failed; trying next provider', { provider: provider.name, error: error.message });
     }
   }
 
-  // 4. Offline / Dev Fallback: Return structured, deterministic financial advice based on prompt context
-  logger.warn('No active LLM credentials configured. Providing structured financial analysis fallback.');
+  if (options.requireProvider || options.validate) {
+    if (providerError) throw providerError;
+    throw new AppError(providers.length
+      ? 'AI recommendations are temporarily unavailable. Please try again shortly.'
+      : 'The selected AI provider is not configured. Set GROQ_API_KEY and AI_PROVIDER=groq to use Groq.', 503);
+  }
+
+  logger.warn('No AI provider available. Returning offline portfolio summary.');
   return (
     'Based on your current portfolio allocation and risk profile, here is an executive financial summary:\n\n' +
     '1. **Asset Allocation & Concentration**: Maintain sector diversification across large-cap leaders (e.g., Banking, IT, Energy) to reduce single-asset volatility.\n' +

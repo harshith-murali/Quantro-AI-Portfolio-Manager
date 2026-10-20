@@ -1,4 +1,5 @@
 "use client";
+import { fetchAPI } from "@/lib/api";
 import { useState } from "react";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { Reveal } from "./Reveal";
@@ -7,15 +8,16 @@ export function WaitlistSection() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
+  const [consent, setConsent] = useState(false);
+  const [message, setMessage] = useState("");
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes("@")) return;
     setStatus("loading");
 
-    // Simulate API call (replace with real endpoint)
-    await new Promise((r) => setTimeout(r, 900));
-    setStatus("success");
-    setEmail("");
+    try { await fetchAPI("/waitlist", {method:"POST",body:JSON.stringify({email,consent})}); setStatus("success"); setEmail(""); }
+    catch(e:any) { setStatus("error"); setMessage(e.message || "Unable to join. Please retry."); }
+
   };
 
   return (
@@ -58,7 +60,7 @@ export function WaitlistSection() {
             <div className="glass-panel rounded-3xl p-10 text-center border border-gold/20 flex flex-col items-center">
               <CheckCircle2 size={48} className="text-gold mb-4" />
               <p className="text-gold font-semibold text-xl mb-2">You&apos;re on the list.</p>
-              <p className="text-muted text-sm">We&apos;ll reach out when early access opens. Watch your inbox.</p>
+              <p className="text-muted text-sm">Your consent and email have been saved. No automated email is sent by this demo.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="glass-panel rounded-3xl p-8 border border-white/5">
@@ -83,10 +85,12 @@ export function WaitlistSection() {
                   )}
                 </button>
               </div>
+              <label className="flex items-start gap-3 text-white/60 text-xs mt-5"><input type="checkbox" required checked={consent} onChange={e=>setConsent(e.target.checked)}/>I agree to receive Quantro product updates. See the Privacy Policy for data handling.</label>
+              {status==="error"&&<p role="alert" className="text-red-300 mt-3 text-sm">{message}</p>}
               <div className="flex items-center justify-center gap-6 mt-6 text-xs text-white/30">
                 <span className="flex items-center gap-1.5"><CheckCircle2 size={12} /> No spam, ever</span>
                 <span className="flex items-center gap-1.5"><CheckCircle2 size={12} /> Early access priority</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 size={12} /> Free forever tier</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 size={12} /> Educational sandbox</span>
               </div>
             </form>
           )}

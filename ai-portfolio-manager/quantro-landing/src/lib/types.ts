@@ -24,6 +24,8 @@ export interface StockSignal {
   currentPrice: number;
   changePercent: number;
   rationale?: string;
+  marketDate?: string;
+  dataSource?: string;
 }
 
 export interface Holding {

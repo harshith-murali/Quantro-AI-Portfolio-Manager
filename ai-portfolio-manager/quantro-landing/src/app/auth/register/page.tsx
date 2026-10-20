@@ -20,6 +20,7 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
 
@@ -96,12 +97,13 @@ export default function RegisterPage() {
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                aria-label="Show or hide password" onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-gold transition-colors focus:outline-none"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            <p className="text-white/50 text-xs mt-2" aria-live="polite">Password checks: {[((watch('password')||'').length>=8),/[A-Z]/.test(watch('password')||''),/[a-z]/.test(watch('password')||''),/[0-9]/.test(watch('password')||''),/[^A-Za-z0-9]/.test(watch('password')||'')].filter(Boolean).length}/5 · 8+ characters, upper/lowercase, number, symbol</p>
             {errors.password && <p className="text-red-400 text-xs mt-2">{errors.password.message}</p>}
           </div>
 
@@ -117,7 +119,7 @@ export default function RegisterPage() {
               />
               <button
                 type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label="Show or hide confirmation password" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-gold transition-colors focus:outline-none"
               >
                 {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}

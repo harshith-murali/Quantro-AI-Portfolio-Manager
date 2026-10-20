@@ -3,6 +3,7 @@ import { parse } from 'csv-parse/sync';
 import { s3Client } from '@/config/s3';
 import { env } from '@/config/env';
 import { logger } from '@/utils/logger';
+import { loadYahooHistory } from '@/services/marketHistory.service';
 
 export const S3_MARKET_DATA_KEYS: Record<string, string> = {
   RELIANCE_NS: 'market-data/individual/RELIANCE_NS_2021-05-14_to_2026-05-14.csv',
@@ -38,6 +39,10 @@ export async function getS3ObjectAsString(key: string): Promise<string> {
 }
 
 export async function fetchAndParseOHLCV(symbol: string) {
+  if (env.MARKET_PRICE_PROVIDER === 'yahoo') {
+    try { return { data: await loadYahooHistory(symbol), key: `YAHOO_FINANCE:${symbol}`, dataSource: 'Yahoo Finance', fetchedAt: new Date().toISOString() }; }
+    catch (error) { return { error: error instanceof Error ? error.message : 'Historical data unavailable', status: 503 }; }
+  }
   const key = S3_MARKET_DATA_KEYS[symbol];
 
   if (!key) {
@@ -126,6 +131,11 @@ export async function getNiftyLatest(): Promise<{
   changePct: number;
   history: { date: string; close: number }[];
 }> {
+  if (env.MARKET_PRICE_PROVIDER === 'yahoo') {
+    const bars = await loadYahooHistory('^NSEI');
+    const latest = bars.at(-1)!; const prev = bars.at(-2)!;
+    return { symbol: 'NIFTY 50 · Yahoo Finance', date: latest.date, close: latest.close, prevClose: prev.close, changePct: Number(((latest.close / prev.close - 1) * 100).toFixed(2)), history: bars.slice(-90).map(bar => ({ date: bar.date, close: bar.close })) };
+  }
   const key = S3_MARKET_DATA_KEYS['NIFTYBEES_NS'];
   if (!key) throw new Error('NIFTYBEES_NS S3 key not configured');
 

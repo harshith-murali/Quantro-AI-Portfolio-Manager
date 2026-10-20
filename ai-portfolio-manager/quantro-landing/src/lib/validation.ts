@@ -6,6 +6,7 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = loginSchema.extend({
+  password: z.string().min(8).max(128).regex(/[A-Z]/,"Include an uppercase letter").regex(/[a-z]/,"Include a lowercase letter").regex(/[0-9]/,"Include a number").regex(/[^A-Za-z0-9]/,"Include a special character"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   confirmPassword: z.string(),
 }).refine((d) => d.password === d.confirmPassword, {

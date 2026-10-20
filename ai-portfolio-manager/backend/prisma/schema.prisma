@@ -36,9 +36,34 @@ model User {
   portfolioSummary   PortfolioSummary?
   watchlistItems     WatchlistItem[]
   backtestExecutions BacktestExecution[]
+  artifacts          UserArtifact[]
 
   @@index([email])
   @@map("users")
+}
+
+// Additive artifact storage: sandbox sessions, account security metadata, etc.
+// Every record is user-scoped.
+model UserArtifact {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  kind      String   @db.VarChar(40)
+  key       String   @db.VarChar(100)
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, kind, key])
+  @@index([userId, kind])
+  @@map("user_artifacts")
+}
+
+model WaitlistSignup {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  consent   Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+  @@map("waitlist_signups")
 }
 
 model WatchlistItem {

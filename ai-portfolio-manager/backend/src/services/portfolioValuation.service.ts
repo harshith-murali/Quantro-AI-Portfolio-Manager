@@ -1,4 +1,5 @@
 import prisma from '@/config/db';
+import { env } from '@/config/env';
 import { getLatestMarketPrice, MarketPrice } from '@/services/marketPrice.service';
 
 type HoldingLike = {
@@ -134,6 +135,6 @@ export async function getPortfolioValuation(userId: string): Promise<PortfolioVa
     lastMarketDataUpdate,
     updateStatus: holdings.length === 0 ? 'NO_POSITIONS' : missingPriceSymbols.length > 0 ? 'PARTIAL' : 'COMPLETE',
     valuedHoldings,
-    dataSource: 'AWS_S3_OHLCV',
+    dataSource: env.MARKET_PRICE_PROVIDER === 'yahoo' ? 'YAHOO_FINANCE' : 'AWS_S3_OHLCV',
   };
 }

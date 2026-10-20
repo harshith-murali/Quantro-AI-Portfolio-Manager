@@ -120,6 +120,7 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <p className="mt-5 text-sm"><Link className="text-gold" href="/auth/recovery">Forgot password or verify email?</Link></p>
         <p className="mt-8 text-center text-white/40 text-sm">
           No account?{" "}
           <Link href="/auth/register" className="text-gold hover:text-white transition-colors">

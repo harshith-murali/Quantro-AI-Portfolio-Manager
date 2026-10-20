@@ -1,14 +1,12 @@
-import { fetchAndParseOHLCV } from '@/services/ohlcv.service';
-
-export interface BacktestParams {
-  symbol: string;
-  shortWindow: number;
-  longWindow: number;
-  initialCapital: number;
-  startDate?: string;
-  endDate?: string;
-}
-
+import { loadBacktestHistory } from "@/services/backtestData.service";
+import { backtestSchema } from "@/validators/backtest.validator";
+import { AppError } from "@/utils/AppError";
+import type { OhlcvBar } from "@/services/marketPrice.service";
+import { createHash } from "node:crypto";
+import { z } from "zod";
+export type BacktestParams = z.input<typeof backtestSchema>;
+export const STRATEGY_VERSION = "sma-next-open-v2";
+const money = (n: number) => Number(n.toFixed(2));
 export interface Trade {
   entryDate: string;
   entryPrice: number;
@@ -17,199 +15,220 @@ export interface Trade {
   shares: number;
   pnl: number;
   pnlPct: number;
+  fees: number;
+  holdingDays: number;
+  forcedExit: boolean;
 }
-
 export interface EquityPoint {
   date: string;
   close: number;
   shortSma: number | null;
   longSma: number | null;
-  signal: 'BUY' | 'SELL' | 'HOLD';
+  signal: "BUY" | "SELL" | "HOLD";
   cash: number;
   shares: number;
   equity: number;
+  benchmark: number;
 }
 
-export async function runBacktest(params: BacktestParams) {
-  const { symbol, shortWindow, longWindow, initialCapital, startDate, endDate } = params;
-
-  // 1. Fetch Data
-  const ohlcvResult = await fetchAndParseOHLCV(symbol);
-  if (ohlcvResult.error || !ohlcvResult.data) {
-    return { error: ohlcvResult.error || 'Failed to load OHLCV data', status: ohlcvResult.status || 500 };
-  }
-
-  let data = ohlcvResult.data;
-
-  // 2. Sort and filter
-  data.sort((a: any, b: any) => a.date.localeCompare(b.date));
-
-  if (startDate || endDate) {
-    data = data.filter((r: any) => {
-      if (startDate && r.date < startDate) return false;
-      if (endDate && r.date > endDate) return false;
-      return true;
+/** Deterministic engine: decide at previous close, execute at next open. */
+export function simulateBacktest(input: BacktestParams, inputBars: OhlcvBar[]) {
+  const p = backtestSchema.parse(input);
+  const bars = [
+    ...new Map(
+      inputBars
+        .filter((b) =>
+          [b.open, b.close, b.high, b.low].every(
+            (v) => Number.isFinite(v) && v > 0,
+          ),
+        )
+        .map((b) => [b.date, b]),
+    ).values(),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+  const selected = bars
+    .map((bar, index) => ({ bar, index }))
+    .filter(
+      ({ bar }) =>
+        (!p.startDate || bar.date >= p.startDate) &&
+        (!p.endDate || bar.date <= p.endDate),
+    );
+  if (selected.length < 2)
+    throw new AppError(
+      "Choose a date range with at least two observed trading days.",
+      400,
+    );
+  const closes = bars.map((b) => b.close);
+  const prefix = [0];
+  for (const close of closes) prefix.push(prefix.at(-1)! + close);
+  const sma = (index: number, window: number) =>
+    index < window - 1
+      ? null
+      : (prefix[index + 1] - prefix[index + 1 - window]) / window;
+  const fee = p.transactionCostPct / 100,
+    slip = p.slippagePct / 100;
+  let cash = p.initialCapital,
+    shares = 0,
+    totalFees = 0;
+  let entry: { date: string; price: number; cost: number; fee: number } | null =
+    null;
+  const trades: Trade[] = [],
+    equityCurve: EquityPoint[] = [];
+  const first = selected[0].bar;
+  const benchPrice = first.open * (1 + slip);
+  const benchShares = Math.floor(
+    (p.initialCapital * (p.positionSize / 100)) / (benchPrice * (1 + fee)),
+  );
+  const benchCash = p.initialCapital - benchShares * benchPrice * (1 + fee);
+  const sell = (bar: OhlcvBar, rawPrice: number, forcedExit = false) => {
+    if (!shares || !entry) return;
+    const price = rawPrice * (1 - slip),
+      exitFee = shares * price * fee;
+    const proceeds = shares * price - exitFee,
+      pnl = proceeds - entry.cost;
+    trades.push({
+      entryDate: entry.date,
+      entryPrice: money(entry.price),
+      exitDate: bar.date,
+      exitPrice: money(price),
+      shares,
+      pnl: money(pnl),
+      pnlPct: Number(((pnl / entry.cost) * 100).toFixed(4)),
+      fees: money(entry.fee + exitFee),
+      holdingDays: Math.round(
+        (Date.parse(bar.date) - Date.parse(entry.date)) / 86400000,
+      ),
+      forcedExit,
     });
-  }
-
-  if (data.length === 0) {
-    return { error: 'No data available for the given date range', status: 400 };
-  }
-
-  // 3. Backtest Engine State
-  let cash = initialCapital;
-  let shares = 0;
-  const trades: Trade[] = [];
-  const equityCurve: EquityPoint[] = [];
-
-  let currentTrade: Partial<Trade> | null = null;
-  let peakEquity = initialCapital;
-  let maxDrawdownPct = 0;
-
-  const closes = data.map((d: any) => d.close);
-
-  // Helper to calculate SMA
-  const getSma = (index: number, window: number): number | null => {
-    if (index < window - 1) return null;
-    let sum = 0;
-    for (let i = 0; i < window; i++) {
-      sum += closes[index - i];
-    }
-    return sum / window;
+    totalFees += exitFee;
+    cash += proceeds;
+    shares = 0;
+    entry = null;
   };
-
-  // 4. Execution Loop
-  for (let i = 0; i < data.length; i++) {
-    const row = data[i];
-    const close = row.close;
-
-    const shortSma = getSma(i, shortWindow);
-    const longSma = getSma(i, longWindow);
-
-    let signal: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
-
-    // We only trigger signals if we have enough data for the long SMA
-    if (shortSma !== null && longSma !== null) {
-      const prevShortSma = getSma(i - 1, shortWindow);
-      const prevLongSma = getSma(i - 1, longWindow);
-
-      if (prevShortSma !== null && prevLongSma !== null) {
-        const isCrossOver = prevShortSma <= prevLongSma && shortSma > longSma;
-        const isCrossUnder = prevShortSma >= prevLongSma && shortSma < longSma;
-
-        if (isCrossOver && shares === 0) {
-          // BUY SIGNAL
-          signal = 'BUY';
-          shares = cash / close; // Fractional shares allowed for simplicity
-          cash = 0;
-          
-          currentTrade = {
-            entryDate: row.date,
-            entryPrice: close,
-            shares: shares,
-          };
-        } else if (isCrossUnder && shares > 0) {
-          // SELL SIGNAL
-          signal = 'SELL';
-          cash = shares * close;
-          
-          if (currentTrade) {
-            const pnl = cash - (currentTrade.shares! * currentTrade.entryPrice!);
-            const pnlPct = (pnl / (currentTrade.shares! * currentTrade.entryPrice!)) * 100;
-            
-            trades.push({
-              entryDate: currentTrade.entryDate!,
-              entryPrice: currentTrade.entryPrice!,
-              exitDate: row.date,
-              exitPrice: close,
-              shares: currentTrade.shares!,
-              pnl,
-              pnlPct,
-            });
-            currentTrade = null;
-          }
-          shares = 0;
+  for (const { bar, index } of selected) {
+    let signal: "BUY" | "SELL" | "HOLD" = "HOLD";
+    // Neither today's close nor any later observation participates in today's decision.
+    const short = sma(index - 1, p.shortWindow),
+      long = sma(index - 1, p.longWindow),
+      prevShort = sma(index - 2, p.shortWindow),
+      prevLong = sma(index - 2, p.longWindow);
+    if (
+      short !== null &&
+      long !== null &&
+      prevShort !== null &&
+      prevLong !== null
+    ) {
+      if (short > long && prevShort <= prevLong && shares === 0) {
+        const price = bar.open * (1 + slip);
+        const budget = Math.min(
+          cash,
+          ((cash + shares * bar.open) * p.positionSize) / 100,
+        );
+        const qty = Math.floor(budget / (price * (1 + fee)));
+        if (qty > 0) {
+          const entryFee = qty * price * fee;
+          const cost = qty * price + entryFee;
+          cash -= cost;
+          shares = qty;
+          totalFees += entryFee;
+          entry = { date: bar.date, price, cost, fee: entryFee };
+          signal = "BUY";
         }
+      } else if (short < long && prevShort >= prevLong && shares > 0) {
+        sell(bar, bar.open);
+        signal = "SELL";
       }
     }
-
-    // Record equity point
-    const currentEquity = cash + (shares * close);
     equityCurve.push({
-      date: row.date,
-      close,
-      shortSma,
-      longSma,
+      date: bar.date,
+      close: bar.close,
+      shortSma: sma(index, p.shortWindow),
+      longSma: sma(index, p.longWindow),
       signal,
-      cash,
+      cash: money(cash),
       shares,
-      equity: currentEquity,
+      equity: money(cash + shares * bar.close),
+      benchmark: money(benchCash + benchShares * bar.close),
     });
-
-    // Track Max Drawdown
-    if (currentEquity > peakEquity) {
-      peakEquity = currentEquity;
-    }
-    const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-    if (currentDrawdown > maxDrawdownPct) {
-      maxDrawdownPct = currentDrawdown;
-    }
   }
-
-  // 5. Close open position at the end of the simulation if needed
-  if (shares > 0 && currentTrade) {
-    const finalRow = data[data.length - 1];
-    const finalClose = finalRow.close;
-    
-    cash = shares * finalClose;
-    const pnl = cash - (currentTrade.shares! * currentTrade.entryPrice!);
-    const pnlPct = (pnl / (currentTrade.shares! * currentTrade.entryPrice!)) * 100;
-    
-    trades.push({
-      entryDate: currentTrade.entryDate!,
-      entryPrice: currentTrade.entryPrice!,
-      exitDate: finalRow.date,
-      exitPrice: finalClose,
-      shares: currentTrade.shares!,
-      pnl,
-      pnlPct,
-    });
-    
-    // Update the final equity curve point to reflect the forced sell
-    equityCurve[equityCurve.length - 1].signal = 'SELL';
-    equityCurve[equityCurve.length - 1].cash = cash;
-    equityCurve[equityCurve.length - 1].shares = 0;
-    equityCurve[equityCurve.length - 1].equity = cash;
-    
-    shares = 0;
+  const last = selected.at(-1)!.bar;
+  if (shares) {
+    sell(last, last.close, true);
+    const point = equityCurve.at(-1)!;
+    point.signal = "SELL";
+    point.cash = money(cash);
+    point.shares = 0;
+    point.equity = money(cash);
   }
-
-  // 6. Calculate Metrics
-  const endingCapital = cash;
-  const totalReturnPct = ((endingCapital - initialCapital) / initialCapital) * 100;
-  
-  // CAGR Calculation
-  const firstDate = new Date(data[0].date);
-  const lastDate = new Date(data[data.length - 1].date);
-  const years = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-  const cagr = years > 0 ? (Math.pow(endingCapital / initialCapital, 1 / years) - 1) * 100 : 0;
-
-  const winningTrades = trades.filter(t => t.pnl > 0).length;
-  const winRatePct = trades.length > 0 ? (winningTrades / trades.length) * 100 : 0;
-
+  const benchmarkEnding =
+    benchCash + benchShares * last.close * (1 - slip) * (1 - fee);
+  equityCurve.at(-1)!.benchmark = money(benchmarkEnding);
+  let peak = p.initialCapital,
+    maxDD = 0;
+  const returns: number[] = [];
+  let previous = p.initialCapital;
+  for (const point of equityCurve) {
+    peak = Math.max(peak, point.equity);
+    maxDD = Math.max(maxDD, (peak - point.equity) / peak);
+    returns.push(point.equity / previous - 1);
+    previous = point.equity;
+  }
+  const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+  const variance =
+    returns.length > 1
+      ? returns.reduce((sum, r) => sum + (r - mean) ** 2, 0) /
+        (returns.length - 1)
+      : 0;
+  const volatility = Math.sqrt(variance) * Math.sqrt(252);
+  const years =
+    (Date.parse(last.date) - Date.parse(first.date)) / 86400000 / 365.25;
+  const summary = {
+    totalReturnPct: money((cash / p.initialCapital - 1) * 100),
+    cagr:
+      years > 0
+        ? money(((cash / p.initialCapital) ** (1 / years) - 1) * 100)
+        : 0,
+    maxDrawdownPct: money(maxDD * 100),
+    winRatePct: trades.length
+      ? money((trades.filter((t) => t.pnl > 0).length / trades.length) * 100)
+      : 0,
+    totalTrades: trades.length,
+    endingCapital: money(cash),
+    totalFees: money(totalFees),
+    volatilityPct: money(volatility * 100),
+    sharpeRatio:
+      volatility > 0 ? Number(((mean * 252) / volatility).toFixed(4)) : null,
+    buyAndHoldReturnPct: money((benchmarkEnding / p.initialCapital - 1) * 100),
+    benchmarkEndingCapital: money(benchmarkEnding),
+  };
   return {
     success: true,
-    symbol,
-    parameters: params,
-    summary: {
-      totalReturnPct,
-      cagr,
-      maxDrawdownPct: maxDrawdownPct * 100, // Format as percentage
-      winRatePct,
-      totalTrades: trades.length,
-      endingCapital,
-    },
+    symbol: p.symbol,
+    parameters: p,
+    summary,
     trades,
     equityCurve,
+    metadata: {
+      strategyVersion: STRATEGY_VERSION,
+      firstDate: first.date,
+      lastDate: last.date,
+      observations: selected.length,
+      dataHash: createHash("sha256").update(JSON.stringify(bars)).digest("hex"),
+      assumptions: [
+        "Signals use previous-close data; orders fill at next observed open.",
+        "Whole shares; one long position; position size applies to account equity.",
+        "Costs are charged on entry and exit; adverse slippage applies on both sides.",
+        "Open positions are liquidated at the final close; benchmark uses matching allocation and costs.",
+        "Risk-free rate is 0%; annualisation uses 252 trading days. Taxes, dividends and corporate-action cash flows are not modelled.",
+        "Current supported symbols are used; historical index membership and survivorship bias are not reconstructed.",
+      ],
+    },
+  };
+}
+export async function runBacktest(params: BacktestParams) {
+  const source = await loadBacktestHistory(params.symbol);
+  const result = simulateBacktest(params, source.data as OhlcvBar[]);
+  return {
+    ...result,
+    metadata: { ...result.metadata, dataSource: source.key, provenance: source.provenance },
   };
 }

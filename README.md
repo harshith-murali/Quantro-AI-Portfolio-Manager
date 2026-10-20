@@ -16,21 +16,23 @@
 🔗 **Live Demo:** [quantro-landing.vercel.app](https://quantro-landing.vercel.app)  
 📦 **Repository:** [github.com/harshith-murali/Quantro-AI-Portfolio-Manager](https://github.com/harshith-murali/Quantro-AI-Portfolio-Manager)
 
+📋 **Interview walkthrough:** [Demo plan, architecture, debugging story, and current limitations](INTERVIEW_GUIDE.md)
+
 ---
 
 ## 🌟 Key Features
 
 ### 📊 Smart Dashboard
-- **Portfolio vs NIFTY 50** real-time comparison chart with performance differential
+- **Portfolio vs NIFTY 50** comparison chart; illustrative history is shown when trade history is absent
 - Key KPI cards: Total Value, P&L (₹ and %), Day Change, and Win Rate
 - Sector-wise allocation donut chart (IT, Financials, Energy, Auto, FMCG)
 - Animated search bar with instant stock suggestions and day-change badges
 
 ### 🤖 AI Financial Advisor
 - Natural language chat interface grounded in the user's current portfolio holdings and risk profile
-- Multi-agent architecture with private VPC / Hugging Face inference endpoints
-- Redis token-bucket rate limiters protecting against prompt injection and quota exhaustion
-- Translates technical signals and macro trends into actionable advice
+- Groq-hosted inference with structured JSON output and runtime validation for recommendations
+- Cached insights and fixed-window request limits to reduce repeated calls and quota usage
+- Recommendations currently use a sample stock/price list; stock-enquiry indicators and the market ticker include demo data
 
 ### ⚡ Signal Engine
 - Technical BUY / HOLD / SELL signals for 50+ NSE stocks
@@ -41,7 +43,7 @@
 ### 💼 Portfolio Management & Trade Simulation
 - Real-time holding allocations with live profit/loss computation
 - **Trade simulation** with interactive Buy/Sell modals backed by PostgreSQL transactions
-- **Transparent fee model**: 0.1% or ₹20 minimum per executed trade
+- Server-resolved INR execution prices; the demo deployment uses validated Yahoo Finance quotes
 - Complete transaction ledger with one-click **Excel (.xlsx)** export via SheetJS
 - Atomic cash wallet deduction: balance rollback if funds are insufficient
 
@@ -51,10 +53,10 @@
 - Visualizations: Equity curve, drawdown chart, and monthly returns heatmap
 - Strategy vs Buy & Hold benchmark comparison
 - Key quantitative metrics: CAGR, Sharpe Ratio, Win Rate, and Maximum Drawdown (MDD)
-- Freemium model: 5 complimentary backtests, then pay-per-run
+- Five successful backtests per account; billing and paid runs are not implemented
 
 ### 🔄 Agentic EOD Data Ingestion Pipeline
-- Scheduled automated workflow executing at 5:30 PM IST (post-NSE market close)
+- Scheduled automated workflow configured for 5:00 PM IST on weekdays (post-NSE market close)
 - Orchestrated by a multi-tier `SupervisorAgent` checking market holiday calendars
 - Fetches verified OHLCV market data and archives processed CSV datasets into an **AWS S3** data lake
 - Three-tier status model (`COMPLETE`, `PARTIAL`, `HOLIDAY/FAILED`) with 10-minute backoff retries
@@ -77,9 +79,9 @@
 | **Backend API** | Node.js, Express.js, TypeScript |
 | **Database & ORM** | PostgreSQL 16+, Prisma ORM |
 | **Authentication** | JWT (15-min Access Token + 7-day HttpOnly Refresh Token), bcrypt |
-| **Compute & Pipeline** | AWS Lambda, GitHub Actions automated cron |
+| **Compute & Pipeline** | Docker backend on EC2, GitHub Actions scheduled pipeline |
 | **Data Lake** | AWS S3 (Historical OHLCV CSV archives) |
-| **Caching & Limits** | Redis (token bucket rate limiting & query caching) |
+| **Caching & Limits** | TTL-aware in-memory caching in the demo deployment; optional Redis support and fixed-window request limits |
 | **State Management** | Zustand (with local storage persistence) |
 | **Reports** | SheetJS (`xlsx`) for Excel ledger exports |
 
@@ -126,7 +128,7 @@ quantro/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Node.js** ≥ 18.x
+- **Node.js** ≥ 22.x (required by the market-data client)
 - **PostgreSQL** ≥ 14.x (or Docker)
 - **npm** or **yarn**
 
@@ -154,7 +156,25 @@ REFRESH_TOKEN_SECRET="generate-different-secret-with-openssl-rand-base64-64"
 ACCESS_TOKEN_EXPIRY="15m"
 REFRESH_TOKEN_EXPIRY="7d"
 CORS_ORIGIN="http://localhost:3000"
+AI_PROVIDER=groq
+GROQ_API_KEY="your-groq-api-key"
+GROQ_MODEL=openai/gpt-oss-20b
 ```
+
+The AI Advisor defaults to Groq using `openai/gpt-oss-20b`, which is listed in
+[Groq's Free Plan limits](https://console.groq.com/docs/rate-limits). Create a key
+at [Groq API Keys](https://console.groq.com/keys), add it to the backend `.env`,
+and restart the backend. For Docker production, set the same variables in
+`backend/.env.production` and recreate the container. Keep the Groq account on
+the Free plan to avoid paid usage; free requests are subject to account quotas.
+`AI_PROVIDER=groq` never falls back to Hugging Face, SageMaker, or Anthropic.
+Recommendation responses use a strict JSON schema and are validated before caching.
+
+For simulated execution and valuation without S3 credentials, set
+`MARKET_PRICE_PROVIDER=yahoo`. The interview demo uses `BYPASS_MARKET_HOURS=true`
+to allow virtual orders after hours at the latest available regular-market quote.
+Balance, quantity, holdings, and quote-freshness checks still apply. Historical
+backtests and the S3 ingestion pipeline require separate AWS access.
 
 **Frontend (`ai-portfolio-manager/quantro-landing/.env`):**
 ```env
@@ -211,7 +231,7 @@ Open **http://localhost:3000** in your browser. You can register a new account o
 ## 🔒 Security Architecture
 
 - **Token Lifecycle**: Short-lived (15 min) HS256 access tokens paired with long-lived (7 day) refresh tokens stored as HttpOnly, Secure, SameSite=Strict cookies.
-- **Session Revocation & Reuse Detection**: Refresh tokens are cryptographically hashed (SHA-256) in PostgreSQL. If a revoked token is reused, all active sessions for that user are immediately invalidated.
+- **Session Revocation & Reuse Detection**: Refresh tokens carry unique JWT IDs and are hashed (SHA-256) in PostgreSQL. Reuse of a revoked token revokes the user's refresh tokens. Logout increments the user's token version to invalidate outstanding access tokens as well.
 - **Password Security**: Passwords hashed with bcrypt using a workload factor of 12.
 - **Data Integrity**: Financial ledger transactions and virtual trades execute within isolated PostgreSQL transactions (`prisma.$transaction`) to prevent partial balance updates.
 - **Sanitization & Validation**: All incoming requests strictly validated using Zod schemas.
@@ -220,3 +240,12 @@ Open **http://localhost:3000** in your browser. You can register a new account o
 
 ## 📄 License
 This project is licensed under the MIT License. Built for demonstration and educational purposes.
+
+
+## Interview build and verified scope
+
+Use [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md) for the demonstration and [AUDIT_IMPLEMENTATION.md](AUDIT_IMPLEMENTATION.md) for the feature checklist, limitations and release evidence. Start from the website's interview-sandbox button for an isolated account with virtual funds. All trades are simulations.
+
+The current backend runs Express, PostgreSQL/Prisma, Groq for hosted inference and Yahoo Finance for the interview deployment's quotes and daily history. Docker uses Node 22 and lockfile-based dependency installation. Email delivery is optional and deliberately disabled for this interview setup.
+
+For an existing database without Prisma migration history, the audit's two additive tables can be applied with `node -r tsconfig-paths/register scripts/applyAuditMigration.cjs` after compiling the backend. Do not run `migrate reset` against an existing deployment. New clean development databases can use the normal Prisma migration workflow.

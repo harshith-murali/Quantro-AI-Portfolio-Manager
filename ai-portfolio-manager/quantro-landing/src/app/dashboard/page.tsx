@@ -52,24 +52,25 @@ export default function DashboardPage() {
   const [movers, setMovers]             = useState<{ gainers: any[]; losers: any[] }>({ gainers: [], losers: [] });
   const [holdings, setHoldings]         = useState<any[]>([]);
   const [signals, setSignals]           = useState<any[]>([]);
+  const [loadError, setLoadError] = useState("");
   const [nifty, setNifty]               = useState<any>(null);
 
   useEffect(() => {
     if (!accessToken) return;
 
     Promise.allSettled([
-      api.profile.get(accessToken).then((d: any) => setUser(d.profile ?? d)).catch(() => {}),
+      api.profile.get(accessToken).then((d: any) => { const { id, userId, ...financial } = d.profile ?? d; const current=useStore.getState().user; if(current)setUser({...current,...financial}); }).catch(() => {}),
 
       api.dashboard.summary(accessToken)
         .then((d: any) => setSummary(d.data ?? d))
-        .catch(() => {}),
+        .catch((e:any) => setLoadError(e.message)),
 
       api.dashboard.portfolioGrowth(accessToken)
         .then((d: any) => setGrowth(d.data?.data ?? d.data ?? []))
         .catch(() => {}),
 
       api.dashboard.topMovers(accessToken)
-        .then((d: any) => setMovers({ gainers: d.data?.gainers ?? [], losers: d.data?.losers ?? [] }))
+        .then((d: any) => setMovers({ gainers: d.data?.gainers ?? d.gainers ?? [], losers: d.data?.losers ?? d.losers ?? [] }))
         .catch(() => {}),
 
       api.dashboard.holdingsTable(accessToken)
@@ -93,7 +94,7 @@ export default function DashboardPage() {
   const totalPnl       = Number(summary?.totalPnL ?? 0);
   const totalPnlPct    = Number(summary?.totalPnLPercent ?? 0);
   const totalInvested  = Number(summary?.totalInvested ?? 0);
-  const unrealised     = totalPnl; // backend computes vs live value
+  const unrealised     = Number(summary?.unrealizedPnl ?? totalPnl); // backend computes vs live value
   const buyCalls       = signals.filter((s: any) => s.signal === "BUY").length;
   const riskAppetite   = summary?.riskAppetite ?? user?.riskAppetite ?? "NOT_SET";
 
@@ -136,39 +137,27 @@ export default function DashboardPage() {
     },
   ];
 
+  const firstBenchmark = nifty?.history?.find((n:any)=>growth.some(g=>g.date===n.date))?.close;
+  const firstValue = Number((growth[0] as any)?.value ?? (growth[0] as any)?.portfolio ?? 0);
   // Merge NIFTY history into growth chart if available
   let chartData = growth.map((g: any) => {
     const niftyPt = nifty?.history?.find((n: any) => n.date === g.date);
     return {
       date: g.date,
       portfolio: Number(g.value || g.portfolio || 0),
-      nifty50: niftyPt?.close
+      nifty50: niftyPt?.close && firstBenchmark ? firstValue * niftyPt.close / firstBenchmark : undefined
     };
   });
 
-  // Generate mock data when no trade history exists so chart looks populated
-  if (chartData.length <= 1) {
-    const days = 30;
-    const now = new Date();
-    let portVal = totalInvested || 100000;
-    let niftyVal = niftyClose || 22500;
-    chartData = Array.from({ length: days }, (_, i) => {
-      const d = new Date(now);
-      d.setDate(d.getDate() - (days - 1 - i));
-      // Slight random walk
-      portVal *= 1 + (Math.random() - 0.48) * 0.015;
-      niftyVal *= 1 + (Math.random() - 0.47) * 0.012;
-      return {
-        date: d.toISOString().split("T")[0],
-        portfolio: Math.round(portVal),
-        nifty50: Math.round(niftyVal),
-      };
-    });
-  }
+  const hasHistory = chartData.length > 1;
+  if (!hasHistory) chartData = [];
 
   return (
     <div className="min-h-screen pt-40 pb-20 px-4 md:px-8 max-w-7xl mx-auto">
 
+      {!hasHistory && <p className="border border-gold/20 rounded-xl p-4 text-white/60 text-sm mb-5">Portfolio history starts with your first virtual trade. No invented performance is shown.</p>}
+      {loadError&&<p role="alert" className="text-red-300 mb-4">Dashboard data could not be loaded: {loadError}. Refresh to retry.</p>}
+      <p className="text-white/50 text-xs mb-4">Source: {summary?.dataSource || "Observed market data"} · Market date {summary?.lastMarketDataUpdate || "No positions yet"}. P&amp;L percentage uses cumulative buy cost. Account-value charts are not cash-flow-adjusted returns.</p>
       {/* Header */}
       <div className="flex items-start justify-between mb-10">
         <div>

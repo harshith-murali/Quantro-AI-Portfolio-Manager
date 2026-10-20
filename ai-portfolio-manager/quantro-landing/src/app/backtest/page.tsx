@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { backtestSchema, type BacktestInput } from "@/lib/validations";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { useStore } from "@/lib/store";
 import { NSE_SYMBOLS } from "@/lib/constants";
 import { TradeTable } from "@/components/backtest/TradeTable";
@@ -67,48 +68,30 @@ function computeMonthlyReturns(rawEq: any[]): { month: string; ret: number }[] {
 
 export default function BacktestPage() {
   const router = useRouter();
-  const { accessToken } = useStore();
+  const accessToken = useAuth();
   const [report, setReport] = useState<any | null>(null);
   const [serverError, setServerError] = useState("");
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [showPaywall, setShowPaywall] = useState(false);
 
-  // Track backtest usage count (persisted in localStorage)
   const BACKTEST_FREE_LIMIT = 5;
-  const BACKTEST_PRICE = 49;
-  const getBacktestCount = () => {
-    if (typeof window === "undefined") return 0;
-    return Number(localStorage.getItem("backtest_count") ?? 0);
-  };
-  const incrementBacktestCount = () => {
-    const count = getBacktestCount() + 1;
-    localStorage.setItem("backtest_count", String(count));
-    return count;
-  };
   const [backtestCount, setBacktestCount] = useState(0);
+  useEffect(()=>{if(accessToken)api.backtest.history(accessToken).then(r=>setBacktestCount(r.length)).catch(()=>{});},[accessToken]);
 
   useEffect(() => {
-    setBacktestCount(getBacktestCount());
-  }, []);
-
-  useEffect(() => {
-    if (!accessToken) router.push("/auth/login");
+    if (!accessToken) return;
   }, [accessToken]);
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<BacktestInput>({
     resolver: zodResolver(backtestSchema),
-    defaultValues: { initialCapital: 100000, positionSize: 10, shortWindow: 20, longWindow: 50, strategy: "SMA_CROSSOVER" },
+    defaultValues: { initialCapital: 100000, positionSize: 10, shortWindow: 20, longWindow: 50, strategy: "SMA_CROSSOVER", transactionCostPct: 0.1, slippagePct: 0.05 },
   });
 
   const onSubmit = async (data: BacktestInput & { transactionCostPct?: number; slippagePct?: number }) => {
     if (!accessToken) return;
 
     // Check free limit
-    if (backtestCount >= BACKTEST_FREE_LIMIT) {
-      setShowPaywall(true);
-      return;
-    }
+
 
     setServerError("");
     setReport(null);
@@ -153,7 +136,7 @@ export default function BacktestPage() {
       const chartEqCurve = rawEqCurve.map((pt: any) => ({
         date: new Date(pt.date).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
         value: pt.equity,
-        benchmark: data.initialCapital * (pt.close / firstClose),
+        benchmark: pt.benchmark ?? data.initialCapital * (pt.close / firstClose),
         close: pt.close,
       }));
 
@@ -174,7 +157,7 @@ export default function BacktestPage() {
         exitPrice: t.exitPrice,
         shares: t.shares,
         pnl: t.pnl,
-        pnlPct: t.entryPrice > 0 ? ((t.exitPrice - t.entryPrice) / t.entryPrice) * 100 : 0,
+        pnlPct: t.pnlPct,
       }));
 
       setReport({
@@ -184,8 +167,9 @@ export default function BacktestPage() {
         winRatePct: result.summary?.winRatePct ?? 0,
         totalTrades: result.summary?.totalTrades ?? 0,
         endingCapital: result.summary?.endingCapital ?? data.initialCapital,
-        sharpeRatio,
-        buyAndHoldReturnPct,
+        sharpeRatio: result.summary?.sharpeRatio ?? 0,
+        buyAndHoldReturnPct: result.summary?.buyAndHoldReturnPct ?? buyAndHoldReturnPct,
+        details: { metadata: result.metadata, comparison: result.comparison, outOfSample: result.outOfSample, fees: result.summary?.totalFees, volatility: result.summary?.volatilityPct },
         equityCurve: chartEqCurve,
         ddSeries,
         monthlyReturns,
@@ -197,7 +181,7 @@ export default function BacktestPage() {
       setTimeout(() => {
         setRunning(false);
         // Increment usage count
-        const newCount = incrementBacktestCount();
+        const newCount = result.usage?.successfulRuns ?? backtestCount + 1;
         setBacktestCount(newCount);
         document.getElementById("results")?.scrollIntoView({ behavior: "smooth" });
       }, 400);
@@ -222,7 +206,7 @@ export default function BacktestPage() {
               ? "border-red-500/30 bg-red-500/10 text-red-400"
               : "border-gold/30 bg-gold/10 text-gold"
           }`}>
-            {Math.max(0, BACKTEST_FREE_LIMIT - backtestCount)}/{BACKTEST_FREE_LIMIT} free runs left
+            Saved runs: {backtestCount} · sandbox has no run cap
           </span>
         </div>
       </div>
@@ -272,22 +256,23 @@ export default function BacktestPage() {
           <div>
             <label className="field-label">Transaction Cost (%)</label>
             <input type="number" step="0.01" defaultValue={0.10} className="auth-input" placeholder="0.10"
-              id="txCostInput" min={0} max={5} />
+              {...register("transactionCostPct", { valueAsNumber: true })} min={0} max={5} />
           </div>
           <div>
             <label className="field-label">Slippage (%)</label>
             <input type="number" step="0.01" defaultValue={0.05} className="auth-input" placeholder="0.05"
-              id="slippageInput" min={0} max={5} />
+              {...register("slippagePct", { valueAsNumber: true })} min={0} max={5} />
           </div>
         </div>
 
         <div className="flex gap-2 mb-5 border border-white/5 rounded-lg px-3 py-2">
           <AlertTriangle size={14} className="text-white/20 shrink-0 mt-0.5" />
           <p className="text-white/20 text-[10px]">
-            Results may differ materially once transaction costs and slippage are applied. Backend support for these parameters is pending.
+            Fees and adverse slippage apply on entry and exit. Signals use the previous close and fill at the next open. Educational simulation; taxes and dividend cash flows are excluded.
           </p>
         </div>
 
+        {Object.keys(errors).length>0&&<p role="alert" className="text-red-300 mb-4">{Object.values(errors).map(e=>e?.message).filter(Boolean).join(" · ")}</p>}
         {serverError && (
           <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
             <p className="text-red-400 text-sm">{serverError}</p>
@@ -309,7 +294,7 @@ export default function BacktestPage() {
           </div>
         )}
 
-        <button type="submit" disabled={isSubmitting || running} className="gold-btn w-full flex items-center justify-center gap-2">
+        <button type="submit" disabled={isSubmitting || running || !accessToken} className="gold-btn w-full flex items-center justify-center gap-2">
           {running ? "Running simulation…" : (
             <>
               Run Backtest <ArrowRight size={16} />
@@ -338,6 +323,7 @@ export default function BacktestPage() {
               </div>
             </div>
 
+            <details className="glass-card mb-6"><summary className="text-gold cursor-pointer">Execution assumptions, costs, sensitivity and out-of-sample evaluation</summary><p className="text-white/60 mt-4 text-sm">Fees: ₹{report.details?.fees?.toFixed(2)} · Annualised volatility: {report.details?.volatility?.toFixed(2)}%</p><ul className="list-disc pl-5 text-white/60 text-sm mt-3">{report.details?.metadata?.assumptions?.map((a:string)=><li key={a}>{a}</li>)}</ul><p className="text-white/40 text-xs mt-3">Source: {report.details?.metadata?.dataSource} · {report.details?.metadata?.firstDate} to {report.details?.metadata?.lastDate} · Version: {report.details?.metadata?.strategyVersion}</p><p className="text-white/40 text-xs mt-2">Origin: {report.details?.metadata?.provenance?.origin || "Yahoo Finance"} · Storage: {report.details?.metadata?.provenance?.provider || "yahoo"}{report.details?.metadata?.provenance?.snapshot ? ` · Snapshot: ${report.details.metadata.provenance.snapshot}` : ""}</p><h3 className="mt-4 text-white">Same-period parameter sensitivity</h3><div className="grid sm:grid-cols-3 gap-3 mt-3">{report.details?.comparison?.map((r:any)=><div key={r.parameters.shortWindow} className="border border-white/10 rounded-xl p-3 text-sm text-white/70">SMA {r.parameters.shortWindow}/{r.parameters.longWindow}<br/>Return {r.summary.totalReturnPct}%<br/>Drawdown {r.summary.maxDrawdownPct}%</div>)}</div>{report.details?.outOfSample&&<p className="text-white/60 mt-4 text-sm">70/30 split at {report.details.outOfSample.splitDate}: training return {report.details.outOfSample.training.totalReturnPct}%; test return {report.details.outOfSample.test.totalReturnPct}%. {report.details.outOfSample.note}</p>}</details>
             {/* Diagnostic states */}
             {report.totalTrades === 0 && (
               <div className="glass-card mb-6 text-center py-6 border border-yellow-500/30">
@@ -489,57 +475,7 @@ export default function BacktestPage() {
         )}
       </AnimatePresence>
 
-      {/* Paywall Modal */}
-      <AnimatePresence>
-        {showPaywall && (
-          <motion.div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setShowPaywall(false)}
-          >
-            <motion.div
-              className="glass-card max-w-sm w-full text-center"
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="w-14 h-14 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center text-2xl mx-auto mb-4">
-                ⚡
-              </div>
-              <h2 className="text-xl font-bold text-white mb-2">Free Limit Reached</h2>
-              <p className="text-white/40 text-sm mb-6">
-                You&apos;ve used all {BACKTEST_FREE_LIMIT} free backtests. Unlock unlimited access for just <span className="text-gold font-bold">₹{BACKTEST_PRICE}</span> per run.
-              </p>
 
-              <div className="p-3 bg-gold/5 border border-gold/20 rounded-xl mb-6 text-left">
-                <p className="text-white/60 text-xs leading-relaxed">
-                  <span className="text-gold font-medium">Premium includes:</span><br />
-                  • Unlimited backtest runs<br />
-                  • Advanced strategy parameters<br />
-                  • Downloadable PDF reports<br />
-                  • Priority execution queue
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  localStorage.setItem("backtest_count", "0");
-                  setBacktestCount(0);
-                  setShowPaywall(false);
-                }}
-                className="w-full py-3 rounded-full bg-gold hover:bg-gold/90 text-black font-semibold text-sm uppercase tracking-wider transition-all mb-3"
-              >
-                Pay ₹{BACKTEST_PRICE} & Continue
-              </button>
-              <button
-                onClick={() => setShowPaywall(false)}
-                className="text-white/30 text-xs hover:text-white transition-colors"
-              >
-                Maybe later
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

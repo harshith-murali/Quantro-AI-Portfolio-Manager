@@ -36,8 +36,9 @@ export default function Page() {
                 gravity.
               </h1>
               <p className="mt-8 max-w-xl text-base leading-8 text-muted sm:text-lg">
-                A luxury AI investing interface engineered for conviction, composure, and asymmetrical advantage.
+                Explore Indian equities with paper trading, explainable research and reproducible strategy simulations. No real money or brokerage orders.
               </p>
+              <p className="mt-3 text-xs text-white/50">Illustrative product previews below. Observed market data is labelled inside the app.</p>
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 {accessToken ? (
                   <Link
